@@ -1,0 +1,20 @@
+{
+    "python": {
+        "executablePath": "/usr/bin/python3",
+        "contextOptions": [
+            {
+                "opt": "python.option",
+                "value": "such wow"
+            }
+        ]
+    },
+
+    "js": {
+        "contextOptions": [
+            {
+                "opt": "js.option",
+                "value": "such wow"
+            }
+        ]
+    }
+}
