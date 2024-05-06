@@ -217,7 +217,7 @@ Checks that the request was to a listener with one of the provided ports
 (listener-port-eq 9090)
 ```
 
-## tool-source-eq VARARG[ScriptsTab.kt](src%2Fmain%2Fkotlin%2Fcom%2Fcarvesystems%2Fburpscript%2Fui%2FScriptsTab.kt)_STRING
+## tool-source-eq VARARG_STRING
 
 Returns true if the tool source is one of the provided sources. Valid sources:
 
