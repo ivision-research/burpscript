@@ -12,6 +12,10 @@ Features:
 - Built-in cryptographic utilities
 - Filter DSL for easily determining if the plugin's registered handlers should handle a request or response
 
+## Beta Notice
+
+Please note that, while we use this tool internally, it is still _beta software_ and there may be bugs. Please file issues if/when you encounter a bug!
+
 ## Installation
 
 The best way to build this project is to enter the `nix` development environment and then use the build script.
