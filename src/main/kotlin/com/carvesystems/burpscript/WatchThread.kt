@@ -1,6 +1,7 @@
 package com.carvesystems.burpscript
 
 import java.nio.file.*
+import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.Flow
 import java.util.concurrent.SubmissionPublisher
@@ -79,7 +80,9 @@ class WatchThread(
 
         synchronized(watchedDirs) {
             for (wd in watchedDirs) {
-                if (wd.hasFile(path)) {
+                val script = wd.maybeGetScript(path) ?: continue
+
+                if (script.updateModified()) {
                     logger.debug("Tracked file $path changed")
                     signalChanged(wd.resolve(path))
                     break
@@ -162,7 +165,21 @@ class WatchThread(
 private class WatchedScript(
     val id: UUID,
     val path: Path,
-)
+    var hash: ByteArray,
+) {
+
+    fun updateModified(): Boolean {
+
+        val newHash = hashFile(path)
+        if (newHash.contentEquals(hash)) {
+            return false
+        }
+
+        hash = newHash
+        return true
+    }
+
+}
 
 private class WatchedDir(
     private val dir: Path,
@@ -173,22 +190,15 @@ private class WatchedDir(
     private val logger = LogManager.getLogger(this)
 
     fun isDir(path: Path): Boolean = dir == path
-    fun hasFile(path: Path): Boolean {
 
-        if (!files.any { it.path.fileName == path.fileName }) {
-            return false
-        }
-
-        // We always watch the dir immediately containing the file, so just
-        // check the parent
+    /// Return the [WatchedScript] for the given [Path] if we're watching
+    /// the file.
+    fun maybeGetScript(path: Path): WatchedScript? =
         if (path.isAbsolute) {
-            return path.parent == dir
+            files.find { it.path == path }
+        } else {
+            files.find { it.path.fileName == path.fileName }
         }
-
-        val resolved = dir.resolve(path)
-        return resolved.exists()
-
-    }
 
     fun cancel() {
         watchKey.cancel()
@@ -205,9 +215,15 @@ private class WatchedDir(
         files.removeIf { it.id == id }
 
     fun add(id: UUID, file: Path) {
-        files.add(WatchedScript(id, file))
+        files.add(WatchedScript(id, file, hashFile(file)))
     }
 
     fun resolve(path: Path): Path = dir.resolve(path)
 
+
 }
+
+private fun hashFile(file: Path): ByteArray =
+    MessageDigest.getInstance("MD5").digest(
+        Files.readAllBytes(file)
+    )
