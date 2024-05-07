@@ -14,7 +14,7 @@ Features:
 
 ## Beta Notice
 
-Please note that, while we use this tool internally, it is still _beta software_ and there may be bugs. Please file issues if/when you encounter a bug!
+Please note that, while we use this tool internally, it is still _beta software_ and there may be bugs. Please file issues if/when you encounter a bug! Also note that this is _untested on Windows_.
 
 ## Installation
 
@@ -27,6 +27,8 @@ $ ./build.sh
 # Build with both Python and JavaScript Support
 $ ./build.sh --js --python
 ```
+
+If you don't want to use `nix`, you'll need to have `gradle` installed and can just run `./build.sh` without it, but this may cause issues with different `gradle` versions.
 
 The resulting jar file will be in `build/libs/burpscript-plugin-<version>.jar`, which you can then install into Burp Suite through the Extensions -> Add window. For more information, see [Managing extensions](https://portswigger.net/burp/documentation/desktop/extensions/managing-extensions).
 

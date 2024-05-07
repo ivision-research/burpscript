@@ -58,6 +58,7 @@ data class LangOptions(val contextOptions: List<LangOpt>)
 @Serializable
 data class PythonLangOptions(
     @SerialName("executablePath") val executable: String? = null,
+    @SerialName("pythonPath") val pythonPath: String? = null,
     val contextOptions: List<LangOpt>? = null,
 )
 
