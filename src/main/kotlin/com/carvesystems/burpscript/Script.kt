@@ -225,11 +225,17 @@ class Script private constructor(
             // TODO Investigate sharing an engine
             ctx = ctxBuilder.build()
         } catch (e: IllegalStateException) {
+            // polyglotimpl.DisableClassPathIsolation = true is the default as of 23.1.2
+            // https://github.com/oracle/graal/commit/548bd7f2166254ef66ceb96a33a440101932b6d5
             throw IllegalStateException(
-                "Try adding -Dpolyglotimpl.DisableClassPathIsolation=true to BurpSuite vm options and restarting. See README",
+                "Try adding -Dpolyglotimpl.DisableClassPathIsolation=true to BurpSuite vm options and restarting. See https://portswigger.net/burp/documentation/desktop/troubleshooting/setting-java-options",
                 e
             )
         }
+        // Building the context can also throw an UnsatisfiedLinkError. This happens if the extension
+        // was loaded multiple times. The truffle JNI shared object is implicitly loaded on first use,
+        // and can only be loaded once.
+        // https://github.com/oracle/graal/blob/master/truffle/src/com.oracle.truffle.runtime/src/com/oracle/truffle/runtime/ModulesSupport.java
 
         val src = Source.newBuilder(language.id, path.toFile()).build()
         val evaluated = ctx.eval(src)

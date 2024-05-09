@@ -7,7 +7,6 @@ import burp.api.montoya.http.handler.*
 import burp.api.montoya.http.message.requests.HttpRequest
 import burp.api.montoya.http.message.responses.HttpResponse
 import burp.api.montoya.proxy.MessageReceivedAction
-import burp.api.montoya.proxy.MessageToBeSentAction
 import burp.api.montoya.proxy.http.*
 import java.nio.file.Path
 import java.util.*
@@ -178,8 +177,14 @@ class ScriptHandler(
                     try {
                         it.reload()
                         publishLoaded(it.id)
-                    } catch (e: Exception) {
-                        logger.error("Failed to reload script", e)
+                    } catch (e: java.lang.Exception) {
+                        logger.error("Failed to reload script ${evt.path}", e)
+                        publishLoadFailed(it.id)
+                    } catch (e: java.lang.Error) {
+                        logger.error(
+                            "Failed to reload script ${evt.path}. This is probably not recoverable. Please try restarting Burp",
+                            e
+                        )
                         publishLoadFailed(it.id)
                     }
                 }
@@ -205,8 +210,14 @@ class ScriptHandler(
                 val script = Script.load(evt.id, api, evt.path, evt.language, evt.opts)
                 scripts.add(script)
                 publishLoaded(evt.id)
-            } catch (e: Exception) {
-                logger.error("failed to load script ${evt.path} - ${evt.language}", e)
+            } catch (e: java.lang.Exception) {
+                logger.error("Failed to load script ${evt.path} - ${evt.language}", e)
+                publishLoadFailed(evt.id)
+            } catch (e: java.lang.Error) {
+                logger.error(
+                    "Failed to load script ${evt.path} - ${evt.language}. This is probably not recoverable. Please try restarting Burp",
+                    e
+                )
                 publishLoadFailed(evt.id)
             }
         }
@@ -220,8 +231,13 @@ class ScriptHandler(
                 logger.debug("Removing $script")
                 try {
                     script.unload()
-                } catch (e: Exception) {
-                    logger.error("Failed to unload script", e)
+                } catch (e: java.lang.Exception) {
+                    logger.error("Failed to unload script $script", e)
+                } catch (e: java.lang.Error) {
+                    logger.error(
+                        "Failed to unload script. This is probably not recoverable. Please try restarting Burp",
+                        e
+                    )
                 }
                 it.remove()
                 break
@@ -257,7 +273,6 @@ class ScriptHandler(
     }
 
     private inner class ScriptEventSubscriber : BaseSubscriber<ScriptEvent>() {
-
         override fun onNext(item: ScriptEvent?) {
             sub.request(1)
             if (item == null) {
@@ -282,7 +297,6 @@ class ScriptHandler(
                 is PathWatchEvent.Modified -> onModified(item)
                 is PathWatchEvent.Removed -> onRemoved(item)
             }
-
         }
     }
 
