@@ -32,16 +32,6 @@ If you don't want to use `nix`, you'll need to have `gradle` installed and can j
 
 The resulting jar file will be in `build/libs/burpscript-plugin-<version>.jar`, which you can then install into Burp Suite through the Extensions -> Add window. For more information, see [Managing extensions](https://portswigger.net/burp/documentation/desktop/extensions/managing-extensions).
 
-To use this plugin, you'll need to launch burp with the `-Dpolyglotimpl.DisableClassPathIsolation=true` JVM arg (see below for an example). Sadly this also disables optimizations (https://github.com/oracle/graaljs/issues/764)
-
-### Linux
-
-For a typical Burp installation at `/path/to/burp/`, add `-Dpolyglotimpl.DisableClassPathIsolation=true` on its own line to the `/path/to/burp/BurpSuitePro.vmoptions` file.
-
-### MacOS
-
-Add `-Dpolyglotimpl.DisableClassPathIsolation=true` on its own line to `/Applications/Burp Suite Professional.app/Contents/vmoptions.txt`.
-
 ## Usage
 
 Burpscript supports writing scripts in JavaScript or Python. When a script is added, Burpscript will call specially named handler functions defined in the script when a request or response is received, allowing scripts an opportunity to manipulate them as they pass through the proxy. Scripts can also define filter expressions using a [Lisp-like DSL](FILTER_EXPRESSIONS.md) to determine which requests and responses they should be applied to.
