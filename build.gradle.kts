@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val burpVersion = "2023.10.4"
-val graalVersion = "23.1.2"
+val graalVersion = "24.0.1"
 val kotlinxVersion = "1.6.3"
 val kotestVersion = "5.4.1"
 
@@ -14,7 +14,7 @@ plugins {
     kotlin("plugin.serialization") version "1.9.10"
 }
 
-val pluginVersion = "0.5.0-beta"
+val pluginVersion = "0.6.0-beta"
 
 group = "com.carvesystems.burpscript"
 version = pluginVersion
