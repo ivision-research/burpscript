@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.equality.shouldBeEqualToComparingFields
 import io.kotest.matchers.nulls.shouldBeNull
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.spyk
 import java.nio.file.Files
@@ -35,6 +36,10 @@ class ConfigTest : StringSpec() {
             cfg = spyk<Config>()
         }
 
+        afterTest {
+            clearMocks(cfg)
+        }
+
         "configs" {
             every {
                 cfg.configFile()
@@ -57,17 +62,17 @@ class ConfigTest : StringSpec() {
             every {
                 cfg.configFile()
             } returns null
-            Config.readConfig().shouldBeNull()
+            cfg.readConfig().shouldBeNull()
 
             every {
                 cfg.configFile()
             } returns Paths.get("nonexistent")
-            Config.readConfig().shouldBeNull()
+            cfg.readConfig().shouldBeNull()
 
             every {
                 cfg.configFile()
             } returns invalid
-            Config.readConfig().shouldBeNull()
+            cfg.readConfig().shouldBeNull()
         }
 
         "deserialization" {

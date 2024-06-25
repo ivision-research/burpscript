@@ -59,9 +59,10 @@ class ScriptTest : StringSpec() {
                     """.trimIndent()
                 )
 
-                Script.load(
+                val script = Script.load(
                     UUID.randomUUID(), mockk(), file, Language.Python, mockk()
                 )
+                script.unload()
             }
         }
 

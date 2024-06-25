@@ -251,7 +251,11 @@ class Script private constructor(
         super.unload()
         addons.forEach { it.unload() }
         addons.clear()
-        ctx.close()
+
+        // We may arrive here from a different thread than the one that is potentially executing
+        // something within the context. Per the "Thread-Safety" section of Context, we're supposed
+        // to use close(cancelIfExecuting=true).
+        ctx.close(true)
     }
 
     private fun loadAddons(value: Value) {
