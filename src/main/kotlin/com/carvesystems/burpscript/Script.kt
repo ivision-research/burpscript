@@ -327,8 +327,7 @@ class Script private constructor(
             return Script(id, api, path, language, opts, builder).apply { reload() }
         }
 
-        /** For tests */
-        fun newContextBuilder(language: Language): ContextBuilder =
+        private fun newContextBuilder(language: Language): ContextBuilder =
             when (language) {
                 Language.JavaScript -> JsContextBuilder()
                 Language.Python -> PythonContextBuilder()

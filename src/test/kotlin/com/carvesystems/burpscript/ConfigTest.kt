@@ -17,7 +17,8 @@ class ConfigTest : StringSpec() {
     init {
         val configDir = tempdir()
         val valid = configDir.toPath().resolve("config.json")
-        Files.writeString(valid, """
+        Files.writeString(
+            valid, """
             {
                 "python": {
                     "executablePath": "/usr/bin/python3",
@@ -27,7 +28,8 @@ class ConfigTest : StringSpec() {
                     ]
                 }
             }
-        """)
+        """
+        )
 
         val invalid = configDir.toPath().resolve("invalid.json")
         Files.writeString(invalid, "asdf")
@@ -76,10 +78,12 @@ class ConfigTest : StringSpec() {
         }
 
         "deserialization" {
-            val cfg1 = Config.parse("""
+            val cfg1 = Config.parse(
+                """
                 {
                     "python": {
-                        "executablePath": "/usr/bin/python3",
+                        "executablePath": "/home/you/venv/bin/python",
+                        "pythonPath": "/home/you/venv/lib/python3.11/site-packages",
                         "contextOptions": [
                             {"opt": "opt1", "value": "val1"},
                             {"opt": "opt2", "value": "val2"}
@@ -90,17 +94,18 @@ class ConfigTest : StringSpec() {
             cfg1.shouldBeEqualToComparingFields(
                 ScriptConfig(
                     python = PythonLangOptions(
-                        executable = "/usr/bin/python3",
+                        executable = "/home/you/venv/bin/python",
+                        pythonPath = "/home/you/venv/lib/python3.11/site-packages",
                         contextOptions = listOf(
                             LangOpt("opt1", "val1"),
                             LangOpt("opt2", "val2")
                         )
-                    ),
-                    js = null
+                    )
                 )
             )
 
-            val cfg2 = Config.parse("""
+            val cfg2 = Config.parse(
+                """
                 {
                     "js": {
                         "contextOptions": [
@@ -112,8 +117,7 @@ class ConfigTest : StringSpec() {
             """)!!
             cfg2.shouldBeEqualToComparingFields(
                 ScriptConfig(
-                    python = null,
-                    js = LangOptions(
+                    js = JsLangOptions(
                         contextOptions = listOf(
                             LangOpt("opt1", "val1"),
                             LangOpt("opt2", "val2")

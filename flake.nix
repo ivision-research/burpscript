@@ -16,6 +16,9 @@
           jdk17
           gradle
           kotlin
+
+          # For tests
+          python3
         ];
       in  pkgs.mkShell {
         inherit packages;
@@ -27,5 +30,4 @@
         '';
       };
     });
-
 }

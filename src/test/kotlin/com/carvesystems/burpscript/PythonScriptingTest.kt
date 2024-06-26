@@ -7,14 +7,17 @@ import burp.api.montoya.http.handler.HttpRequestToBeSent
 import burp.api.montoya.internal.ObjectFactoryLocator
 import com.carvesystems.burpscript.interop.fromJson
 import com.carvesystems.burpscript.interop.toByteArray
-import com.carvesystems.burpscript.shouldBe
+import com.carvesystems.burpscript.matchers.value.shouldBe
+import com.carvesystems.burpscript.matchers.value.shouldContainExactly
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotBeEmpty
 import io.mockk.*
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.Source
 import org.graalvm.polyglot.Value
+import java.nio.file.Path
 import kotlin.io.path.writeText
 
 val RSA_CERT = """
@@ -376,8 +379,8 @@ class PythonScriptingTest : StringSpec() {
 
 class PythonContextTest : StringSpec() {
     init {
-        "import" {
-            tempdir() { importPath ->
+        "import from path" {
+            tempdir { importPath ->
                 val toImport = importPath.resolve("common.py")
                 toImport.writeText(
                     """
@@ -390,6 +393,30 @@ class PythonContextTest : StringSpec() {
                 ctx.eval("python", "import common")
                 val ret = ctx.eval("python", "common.do_something()")
                 ret.shouldBe("did something")
+            }
+        }
+
+        "import from stdlib" {
+            pythonenv { env ->
+                val ctx1 = env.contextBuilder.build()
+                ctx1.eval("python", "import base64")
+                ctx1.eval("python", "import urllib.parse")
+
+                val ctx2 = env.contextBuilder.withImportPath(Path.of("path/to/something")).build()
+                ctx2.eval("python", "import base64")
+                ctx2.eval("python", "import urllib.parse")
+            }
+        }
+
+        "import from site" {
+            pythonenv { env ->
+                env.install(TestEnv.resolveTestData("testpythonpkg").toString())
+
+                val ctx = env.contextBuilder.build()
+                ctx.eval("python", "import testpythonpkg")
+
+                val ctx2 = env.contextBuilder.withImportPath(Path.of("path/to/something")).build()
+                ctx2.eval("python", "import testpythonpkg")
             }
         }
     }
@@ -412,3 +439,43 @@ class PythonBindingsTest : StringSpec() {
         }
     }
 }
+
+private inline fun pythonenv(block: (env: PythonEnv) -> Unit) {
+    tempdir { tmp ->
+        val envPath = tmp.resolve("burpscript-venv")
+        block(PythonEnv(envPath))
+    }
+}
+
+private class PythonEnv(val path: Path) {
+    val pythonExe = path.resolve("bin/python").toString()
+    val contextBuilder: PythonContextBuilder
+
+    init {
+        val res = TestEnv.shellExec("python -m venv $path")
+        res.ok().shouldBeTrue()
+
+        val pythonPath = execVenv(
+            "python -c \"import site; print(':'.join(site.getsitepackages()))\""
+        ).trim()
+        pythonPath.shouldNotBeEmpty()
+        contextBuilder = PythonContextBuilder(
+            PythonLangOptions(
+                executable = pythonExe,
+                pythonPath = pythonPath
+            )
+        )
+    }
+
+    fun install(vararg packages: String) {
+        execVenv("pip install ${packages.joinToString(" ")}")
+    }
+
+    private fun execVenv(cmd: String): String {
+        val activate = path.resolve("bin/activate")
+        val res = TestEnv.shellExec("source $activate && $cmd")
+        res.ok().shouldBeTrue()
+        return res.getStdoutString()
+    }
+}
+

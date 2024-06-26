@@ -1,6 +1,8 @@
 package com.carvesystems.burpscript
 
 import com.carvesystems.burpscript.interop.fromJson
+import com.carvesystems.burpscript.matchers.value.shouldContainExactly
+import com.carvesystems.burpscript.matchers.value.shouldBe
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.mockk.every
