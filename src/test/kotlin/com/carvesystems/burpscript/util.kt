@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.absolute
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.deleteRecursively
 
@@ -33,8 +34,7 @@ inline fun tempfile(filename: String, block: (Path) -> Unit) {
 object TestEnv {
     fun resolveTestData(first: String, vararg others: String): Path {
         // Assume cwd is project root
-        val testData = Path.of("src", "test", "data")
-        return testData.resolve(Path.of(first, *others))
+        return Path.of("src", "test", "data", first, *others).absolute()
     }
 
     fun shellExec(cmd: String): ExecResult {

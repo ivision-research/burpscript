@@ -80,8 +80,8 @@ class JsScriptingTest : StringSpec() {
 
 class JsContextTest : StringSpec() {
     init {
-        "import" {
-            tempdir() { importPath ->
+        "import adjacent to script" {
+            tempdir { importPath ->
                 val ctx = JsContextBuilder().withImportPath(importPath).build()
 
                 val toImportMjs = importPath.resolve("common.mjs")
@@ -103,8 +103,8 @@ class JsContextTest : StringSpec() {
             }
         }
 
-        "require" {
-            tempdir() { importPath ->
+        "require adjacent to script" {
+            tempdir { importPath ->
                 val toRequireCJs = importPath.resolve("common.js")
                 toRequireCJs.writeText(
                     """
@@ -122,6 +122,24 @@ class JsContextTest : StringSpec() {
                     module.exports = { doSomething };
                 """.trimIndent()
                 val mod = ctx.eval(Source.newBuilder("js", require, "test.js").build())
+                mod.hasMember("doSomething").shouldBeTrue()
+                mod.getMember("doSomething").execute().shouldBe("did something")
+            }
+        }
+
+        "require from node_modules" {
+            tempdir { cwd ->
+                val pkg = TestEnv.resolveTestData("testnpmpkg")
+
+                TestEnv.shellExec("cd '$cwd' && npm install '$pkg'")
+
+                val ctx = JsContextBuilder().withImportPath(cwd).build()
+
+                val import = """
+                    const { doSomething } = require('testnpmpkg');
+                    module.exports = { doSomething };
+                """.trimIndent()
+                val mod = ctx.eval(Source.newBuilder("js", import, "test.js").build())
                 mod.hasMember("doSomething").shouldBeTrue()
                 mod.getMember("doSomething").execute().shouldBe("did something")
             }
@@ -162,3 +180,4 @@ class JsBindingsTest : StringSpec() {
         }
     }
 }
+

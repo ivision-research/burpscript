@@ -452,7 +452,7 @@ private class PythonEnv(val path: Path) {
     val contextBuilder: PythonContextBuilder
 
     init {
-        val res = TestEnv.shellExec("python -m venv $path")
+        val res = TestEnv.shellExec("python -m venv '$path'")
         res.ok().shouldBeTrue()
 
         val pythonPath = execVenv(
@@ -468,7 +468,8 @@ private class PythonEnv(val path: Path) {
     }
 
     fun install(vararg packages: String) {
-        execVenv("pip install ${packages.joinToString(" ")}")
+        val pkgs = packages.joinToString(" ") { "'$it'" }
+        execVenv("pip install $pkgs")
     }
 
     private fun execVenv(cmd: String): String {

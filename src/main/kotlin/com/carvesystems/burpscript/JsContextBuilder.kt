@@ -38,6 +38,7 @@ class JsContextBuilder(
         ctx.allowExperimentalOptions(true)
 
         // https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/Modules/
+        // https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/NodeJSvsJavaScriptContext
         ctx.option("js.esm-eval-returns-exports", "true")
         importPath?.let { path ->
             ctx.option("js.commonjs-require", "true")

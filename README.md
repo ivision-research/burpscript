@@ -213,32 +213,105 @@ export function onRequest(req) {
 
 ### Importing
 
-Scripts can import other modules that reside in the same directory.
+Scripts can import other modules that reside in the same directory. Importing 3rd party modules is also supported, however, there are language-specific limitations.
 
 **Python**
+
+Here is an example of importing a utility module that resides in the same directory as the script module:
+
 ```python
-# common.py
+# ./myutils.py
 def do_something():
     ...
 ```
 
 ```python
+# ./script.py
+from myutils import do_something
+```
+
+Python standard library modules and 3rd party pypi modules can be imported as well. However, not all modules are supported.
+In particular, modules that depend on native code may fail to import. For the most reliable support, we recommend using [GraalPy](https://www.graalvm.org/python/).
+
+To allow BurpScript to resolve Python module imports, ensure that the Python interpreter executable, and Python path variables are set in the [BurpScript configuration file](examples/conf.json).
+
+```bash
+$ python -m venv burpscript-env
+$ source burpscript-env/bin/activate
+(burpscript-env) $ pip install pyjwt
+```
+
+```json
+{
+    "python": {
+        "executablePath": "/path/to/burpscript-env/bin/python",
+        "pythonPath": "/path/to/burpscript-env/lib/python3.11/site-packages"
+    }
+}
+```
+
+```python
 # script.py
-from common import do_something
+import jwt
+
+def on_request(req):
+    token = jwt.encode({"some": "payload"}, "secret", algorithm="HS256")
+    return req.withHeader("Authorization", f"Bearer {token}")
+```
+
+**JavaScript (CommonJS)**
+
+CommonJS module style (`.js`) scripts can import other modules using the `require` function. Limited support for 3rd party NPM modules is also available, however, modules that depend on Node.js built-ins, such as `fs`, and `buffer`, are not supported. See the [GraalVM JavaScript documentation](https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/NodeJSvsJavaScriptContext/#java-libraries) for more information about the limitations.
+
+```javascript
+// ./myutils.js
+module.exports = {
+    doSomething: function() {
+        ...
+    }
+}
+```
+
+```javascript
+// ./script.js
+const { doSomething } = require('./myutils.js')
+```
+
+To use 3rd party NPM modules, ensure that the `node_modules` directory is present in the same directory as the script module.
+
+```bash
+$ npm i lodash
+$ ls
+node_modules/ script.js
+```
+
+```javascript
+// script.js
+const _ = require('lodash')
+
+module.exports = {
+    onRequest: function(req) {
+        return req.withHeader("X-RAND", `${_.random(0, 100)}`)
+    }``
+}
 ```
 
 **JavaScript (ES6)**
+
+If the script is written using the ES6 module style (`.mjs`), path-adjacent `.mjs` files can be imported using the `import` statement.
+
 ```javascript
-// common.mjs
+// ./myutils.mjs
 export function doSomething() {
     ...
 }
 ```
 
 ```javascript
-// script.mjs
-import { doSomething } from './common.mjs'
+// ./script.mjs
+import { doSomething } from './myutils.mjs'
 ```
+
 
 ### Limitations
 

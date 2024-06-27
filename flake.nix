@@ -19,6 +19,7 @@
 
           # For tests
           python3
+          nodePackages.npm
         ];
       in  pkgs.mkShell {
         inherit packages;
