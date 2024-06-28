@@ -59,7 +59,7 @@ else
     args="$args -Dburpscript.lang$LJS=off"
 fi
 
-args="$args shadowJar -x test"
+args="$args shadowJar -x check"
 
 if gradle $args; then
     ver=$(grep "pluginVersion =" build.gradle.kts | cut -d'=' -f2 | tr -d '" ')

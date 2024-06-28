@@ -1,4 +1,4 @@
-package com.carvesystems.burpscript.matchers.value
+package com.carvesystems.burpscript.internal.testing.matchers.value
 
 import com.carvesystems.burpscript.interop.asAny
 import com.carvesystems.burpscript.interop.toList

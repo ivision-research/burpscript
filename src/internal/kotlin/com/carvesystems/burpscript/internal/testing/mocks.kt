@@ -1,4 +1,4 @@
-package com.carvesystems.burpscript
+package com.carvesystems.burpscript.internal.testing
 
 import burp.api.montoya.core.ByteArray as BurpByteArray
 import burp.api.montoya.core.Range

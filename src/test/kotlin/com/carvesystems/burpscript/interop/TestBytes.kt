@@ -1,9 +1,9 @@
 package com.carvesystems.burpscript.interop
 
 import io.kotest.core.spec.style.StringSpec
-import org.graalvm.polyglot.Context
-import io.kotest.matchers.*
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
+import org.graalvm.polyglot.Context
 
 class TestBytes : StringSpec() {
     private lateinit var ctx: Context

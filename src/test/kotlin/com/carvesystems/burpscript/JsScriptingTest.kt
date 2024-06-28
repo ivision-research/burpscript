@@ -1,8 +1,9 @@
 package com.carvesystems.burpscript
 
 import com.carvesystems.burpscript.interop.fromJson
-import com.carvesystems.burpscript.matchers.value.shouldContainExactly
-import com.carvesystems.burpscript.matchers.value.shouldBe
+import com.carvesystems.burpscript.internal.testing.matchers.value.shouldContainExactly
+import com.carvesystems.burpscript.internal.testing.matchers.value.shouldBe
+import com.carvesystems.burpscript.internal.testing.tempdir
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.mockk.every
@@ -122,24 +123,6 @@ class JsContextTest : StringSpec() {
                     module.exports = { doSomething };
                 """.trimIndent()
                 val mod = ctx.eval(Source.newBuilder("js", require, "test.js").build())
-                mod.hasMember("doSomething").shouldBeTrue()
-                mod.getMember("doSomething").execute().shouldBe("did something")
-            }
-        }
-
-        "require from node_modules" {
-            tempdir { cwd ->
-                val pkg = TestEnv.resolveTestData("testnpmpkg")
-
-                TestEnv.shellExec("cd '$cwd' && npm install '$pkg'")
-
-                val ctx = JsContextBuilder().withImportPath(cwd).build()
-
-                val import = """
-                    const { doSomething } = require('testnpmpkg');
-                    module.exports = { doSomething };
-                """.trimIndent()
-                val mod = ctx.eval(Source.newBuilder("js", import, "test.js").build())
                 mod.hasMember("doSomething").shouldBeTrue()
                 mod.getMember("doSomething").execute().shouldBe("did something")
             }

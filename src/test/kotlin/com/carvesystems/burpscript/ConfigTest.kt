@@ -90,7 +90,8 @@ class ConfigTest : StringSpec() {
                         ]
                     }
                 }
-            """)!!
+            """
+            )!!
             cfg1.shouldBeEqualToComparingFields(
                 ScriptConfig(
                     python = PythonLangOptions(
@@ -114,7 +115,8 @@ class ConfigTest : StringSpec() {
                         ]
                     }
                 }
-            """)!!
+            """
+            )!!
             cfg2.shouldBeEqualToComparingFields(
                 ScriptConfig(
                     js = JsLangOptions(

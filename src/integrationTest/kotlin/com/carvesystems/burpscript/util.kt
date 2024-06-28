@@ -1,47 +1,23 @@
 package com.carvesystems.burpscript
 
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.absolute
-import kotlin.io.path.deleteIfExists
-import kotlin.io.path.deleteRecursively
 
-
-@OptIn(ExperimentalPathApi::class)
-inline fun tempdir(block: (Path) -> Unit) {
-    val dir = Files.createTempDirectory("burpscript-tests").toAbsolutePath()
-
-    try {
-        block(dir)
-    } finally {
-        dir.deleteRecursively()
+object IntegrationTestEnv {
+    private val projectRoot: String by lazy {
+        // Assume cwd is the project root, if unset. This is the case when running tests from Gradle or intellij
+        System.getProperty("burpscript.testing.projectRoot", "")
     }
-}
 
-inline fun tempfile(filename: String, block: (Path) -> Unit) {
-    val fn = File(filename)
-    val file = Files.createTempFile(fn.nameWithoutExtension, ".${fn.extension}").toAbsolutePath()
-
-    try {
-        block(file)
-    } finally {
-        file.deleteIfExists()
-    }
-}
-
-object TestEnv {
     fun resolveTestData(first: String, vararg others: String): Path {
-        // Assume cwd is project root
-        return Path.of("src", "test", "data", first, *others).absolute()
+        return Path.of(projectRoot, "src", "integrationTest", "data", first, *others).absolute()
     }
 
     fun shellExec(cmd: String): ExecResult {
         return if (System.getenv("BURPSCRIPT_NIX") != null) {
             exec("bash", "-c", cmd)
         } else {
-            // Assume cwd is project root
             exec("nix", "develop", "--command", "bash", "-c", cmd)
         }
     }
@@ -50,6 +26,9 @@ object TestEnv {
         val pb = with(ProcessBuilder(program, *args)) {
             redirectError(ProcessBuilder.Redirect.PIPE)
             redirectOutput(ProcessBuilder.Redirect.PIPE)
+            if (projectRoot.isNotEmpty()) {
+                directory(File(projectRoot))
+            }
             start()
         }
         val input = pb.outputStream
@@ -68,4 +47,3 @@ object TestEnv {
         return res
     }
 }
-
