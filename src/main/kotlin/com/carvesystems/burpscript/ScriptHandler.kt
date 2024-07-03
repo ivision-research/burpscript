@@ -42,13 +42,7 @@ class ScriptHandler(
         scriptEvents.subscribe(scriptEventSubscriber)
 
         SaveData.forEachScript {
-            try {
-                scripts.add(Script.load(it.id, api, it.path, it.language, it.opts))
-                publishLoaded(it.id)
-            } catch (e: Exception) {
-                logger.error("failed to load saved script ${it.path}", e)
-                publishLoadFailed(it.id)
-            }
+            loadScriptLocked(it.id, it.path, it.language, it.opts)
         }
 
         handlerRegistrations.add(api.http().registerHttpHandler(this))
@@ -171,22 +165,19 @@ class ScriptHandler(
     private fun onModified(evt: PathWatchEvent.Modified) {
         val path = evt.path
         syncScripts.write {
-            scripts.forEach {
-                if (it.isPath(path)) {
-                    logger.debug("Reloading $path")
-                    try {
-                        it.reload()
-                        publishLoaded(it.id)
-                    } catch (e: java.lang.Exception) {
-                        logger.error("Failed to reload script ${evt.path}", e)
-                        publishLoadFailed(it.id)
-                    } catch (e: java.lang.Error) {
-                        logger.error(
-                            "Failed to reload script ${evt.path}. This is probably not recoverable. Please try restarting Burp",
-                            e
-                        )
-                        publishLoadFailed(it.id)
-                    }
+            scripts.find { it.isPath(path) }?.let {
+                try {
+                    it.reload()
+                    publishLoaded(it.id)
+                } catch (e: java.lang.Exception) {
+                    logger.error("Failed to reload script ${evt.path}", e)
+                    publishLoadFailed(it.id)
+                } catch (e: java.lang.Error) {
+                    logger.error(
+                        "Failed to reload script ${evt.path}. This is probably not recoverable. Please try restarting Burp",
+                        e
+                    )
+                    publishLoadFailed(it.id)
                 }
             }
         }
@@ -206,20 +197,26 @@ class ScriptHandler(
         logger.debug("Setting script ${evt.id} - ${evt.path} - ${evt.language}")
         syncScripts.write {
             removeScriptLocked { it.id == evt.id }
-            try {
-                val script = Script.load(evt.id, api, evt.path, evt.language, evt.opts)
-                scripts.add(script)
-                publishLoaded(evt.id)
-            } catch (e: java.lang.Exception) {
-                logger.error("Failed to load script ${evt.path} - ${evt.language}", e)
-                publishLoadFailed(evt.id)
-            } catch (e: java.lang.Error) {
-                logger.error(
-                    "Failed to load script ${evt.path} - ${evt.language}. This is probably not recoverable. Please try restarting Burp",
-                    e
-                )
-                publishLoadFailed(evt.id)
-            }
+            loadScriptLocked(evt.id, evt.path, evt.language, evt.opts)
+        }
+    }
+
+    private fun loadScriptLocked(id: UUID, path: Path, language: Language, opts: Script.Options) {
+        val script = Script(id, api, path, language, opts)
+        scripts.add(script)
+
+        try {
+            script.reload()
+            publishLoaded(id)
+        } catch (e: java.lang.Exception) {
+            logger.error("Failed to load script ${path} - ${language}", e)
+            publishLoadFailed(id)
+        } catch (e: java.lang.Error) {
+            logger.error(
+                "Failed to load script ${path} - ${language}. This is probably not recoverable. Please try restarting Burp",
+                e
+            )
+            publishLoadFailed(id)
         }
     }
 

@@ -261,7 +261,7 @@ def on_request(req):
 
 **JavaScript (CommonJS)**
 
-CommonJS module style (`.js`) scripts can import other modules using the `require` function. Limited support for 3rd party NPM modules is also available, however, modules that depend on Node.js built-ins, such as `fs`, and `buffer`, are not supported. See the [GraalVM JavaScript documentation](https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/NodeJSvsJavaScriptContext/#java-libraries) for more information about the limitations.
+CommonJS module style (`.js`) scripts can import other modules using the `require` function.
 
 ```javascript
 // ./myutils.js
@@ -277,12 +277,12 @@ module.exports = {
 const { doSomething } = require('./myutils.js')
 ```
 
-To use 3rd party NPM modules, ensure that the `node_modules` directory is present in the same directory as the script module.
+Limited support for 3rd party NPM modules is also available, however, modules that depend on Node.js built-ins, such as `fs`, and `buffer`, are not supported. See the [GraalVM JavaScript documentation](https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/NodeJSvsJavaScriptContext/#java-libraries) for more information about the limitations. To use 3rd party NPM modules, ensure that the `node_modules` directory is present in the same directory as the script module.
 
 ```bash
 $ npm i lodash
 $ ls
-node_modules/ script.js
+node_modules/ package.json package-lock.json script.js
 ```
 
 ```javascript
@@ -292,7 +292,7 @@ const _ = require('lodash')
 module.exports = {
     onRequest: function(req) {
         return req.withHeader("X-RAND", `${_.random(0, 100)}`)
-    }``
+    }
 }
 ```
 

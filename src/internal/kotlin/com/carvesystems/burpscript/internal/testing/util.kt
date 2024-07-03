@@ -20,13 +20,22 @@ inline fun tempdir(block: (Path) -> Unit) {
 }
 
 inline fun tempfile(filename: String, block: (Path) -> Unit) {
-    val fn = File(filename)
-    val file = Files.createTempFile(fn.nameWithoutExtension, ".${fn.extension}").toAbsolutePath()
+    tempfiles(filename) {
+        block(it.first())
+    }
+}
+
+inline fun tempfiles(vararg filenames: String, block: (Array<out Path>) -> Unit) {
+    val files = filenames.map { File(it) }
+    val paths =
+        files.map {
+            Files.createTempFile(it.nameWithoutExtension, ".${it.extension}").toAbsolutePath()
+        }.toTypedArray()
 
     try {
-        block(file)
+        block(paths)
     } finally {
-        file.deleteIfExists()
+        paths.forEach { it.deleteIfExists() }
     }
 }
 
