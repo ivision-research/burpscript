@@ -20,22 +20,6 @@ class ValueTest : StringSpec() {
             ctx.asValue(42.0).shouldBe(42.0)
         }
 
-        "String asBinaryArg" {
-            ctx.asValue(
-                "AQID"
-            ).asBinaryArg().shouldBe(
-                byteArrayOf(1, 2, 3)
-            )
-        }
-
-        "iterable asBinaryArg" {
-            ctx.asValue(
-                listOf(1, 2, 3) as Iterable<Int>
-            ).asBinaryArg().shouldBe(
-                byteArrayOf(1, 2, 3)
-            )
-        }
-
         "toException" {
             ctx.asValue(Exception("test")).toException()!!.message.shouldBe("test")
 

@@ -4,6 +4,16 @@
  * GraalVM supports using _some_ python modules that rely on native C extensions,
  * but these must be built using the GraalVM python runtime (graalpy):
  *  - https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/python/FAQ/#does-modulepackage-xyz-work-on-graalvms-python-runtime
+ *
+ * Type mapping & interop:
+ *  https://www.graalvm.org/latest/reference-manual/python/Interoperability/
+ *  https://www.graalvm.org/jdk24/reference-manual/espresso/interoperability/
+ *  https://www.graalvm.org/sdk/javadoc/org/graalvm/polyglot/HostAccess.Builder.html#targetTypeMapping(java.lang.Class,java.lang.Class,java.util.function.Predicate,java.util.function.Function,org.graalvm.polyglot.HostAccess.TargetMappingPrecedence)
+ *  https://github.com/oracle/graalpython/issues/248
+ *  https://github.com/oracle/graalpython/blob/master/graalpython/com.oracle.graal.python/src/com/oracle/graal/python/runtime/interop/InteropByteArray.java
+ *  https://github.com/oracle/graalpython/blob/86885bfc1236f7ae4575f9ed43b60958cc9e9388/graalpython/com.oracle.graal.python/src/com/oracle/graal/python/builtins/modules/JavaModuleBuiltins.java#L79
+ *  https://github.com/oracle/graalpython/blob/86885bfc1236f7ae4575f9ed43b60958cc9e9388/graalpython/com.oracle.graal.python/src/com/oracle/graal/python/builtins/objects/bytes/BytesNodes.java#L574
+ *  https://github.com/oracle/graal/issues/2139#issuecomment-1904152100
  */
 
 package com.carvesystems.burpscript
@@ -104,3 +114,5 @@ object PythonBindings {
     fun print(logger: ScriptLogger) =
         CallableValue<Unit> { args -> logger.info(args.first()) }
 }
+
+

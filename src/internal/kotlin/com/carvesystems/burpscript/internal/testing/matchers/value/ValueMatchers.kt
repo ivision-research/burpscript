@@ -15,6 +15,9 @@ import org.graalvm.polyglot.Value
 infix fun <T> Value.shouldBe(expected: T) = this.asAny() shouldBe expected
 infix fun <T> Value.shouldNotBe(expected: T) = this.asAny() shouldNotBe expected
 
+fun Value.shouldBeTrue() = this.asBoolean() shouldBe true
+fun Value.shouldBeFalse() = this.asBoolean() shouldBe false
+
 infix fun <T> Value.shouldContainExactly(expected: Iterable<T>) =
     this.toList() shouldContainExactly expected
 

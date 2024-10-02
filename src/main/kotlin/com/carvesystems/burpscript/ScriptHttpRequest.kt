@@ -13,40 +13,50 @@ import burp.api.montoya.http.message.requests.HttpRequest
 import burp.api.montoya.http.message.requests.HttpTransformation
 import burp.api.montoya.proxy.MessageReceivedAction
 import burp.api.montoya.proxy.http.InterceptedRequest
-import com.carvesystems.burpscript.interop.fromJson
-import com.carvesystems.burpscript.interop.toBurpByteArray
-import com.carvesystems.burpscript.interop.toJson
+import com.carvesystems.burpscript.interop.*
 import org.graalvm.polyglot.Value
 import java.util.regex.Pattern
 
 interface ScriptHttpRequest : HttpRequestToBeSent {
     /** True if the response contains an attachment with a certain file name */
+    @ScriptApi
     fun hasAttachment(key: String): Boolean
 
     /** Gets an attachment, if it exists, as a string */
+    @ScriptApi
     fun getAttachment(key: String): String?
 
     /** Add an attachment to the request */
+    @ScriptApi
     fun withAttachment(key: String, data: String): ScriptHttpRequest
 
     /** Add a query parameter to the request */
+    @ScriptApi
     fun withQueryParameter(key: String, data: String): ScriptHttpRequest
 
     /**
      * Parse body as JSON
      * ScriptMap | List | String | Number | Boolean | null
      */
+    @ScriptApi
     fun bodyToJson(): Any?
+
+    /**
+     *
+     */
+    @ScriptApi
+    fun bodyToBytes(): UnsignedByteArray
 
     /**
      * Serialize `value` to JSON and set the body
      */
+    @ScriptApi
     fun withJson(value: Value): HttpRequest
 
     /**
      * Set the body to signed or unsigned bytes
      */
-    fun withBytes(signedOrUnsignedBytes: Value): HttpRequest
+    fun withBytes(bytes: AnyBinary): HttpRequest
 
     /**
      * Drop this response, do not send this response to the server.
@@ -146,6 +156,8 @@ class ScriptHttpRequestImpl(
 
     override fun bodyToJson(): Any? = fromJson(req.bodyToString())
 
+    override fun bodyToBytes(): UnsignedByteArray = req.body().toUnsignedByteArray()
+
     override fun contains(pattern: Pattern?): Boolean = req.contains(pattern)
 
     override fun contains(searchTerm: String?, caseSensitive: Boolean): Boolean =
@@ -210,8 +222,8 @@ class ScriptHttpRequestImpl(
 
     override fun withJson(value: Value): HttpRequest = withBody(toJson(value))
 
-    override fun withBytes(signedOrUnsignedBytes: Value): HttpRequest =
-        withBody(signedOrUnsignedBytes.toBurpByteArray())
+    override fun withBytes(bytes: AnyBinary): HttpRequest =
+        withBody(bytes.asAnyBinaryToByteArray().toBurpByteArray())
 
     override fun withBody(body: String?): HttpRequest =
         ScriptHttpRequestImpl(req.withBody(body), annotations, toolSource, messageId, attachments, action)

@@ -14,9 +14,7 @@ import burp.api.montoya.http.message.responses.analysis.AttributeType
 import burp.api.montoya.http.message.responses.analysis.KeywordCount
 import burp.api.montoya.proxy.MessageReceivedAction
 import burp.api.montoya.proxy.http.InterceptedResponse
-import com.carvesystems.burpscript.interop.fromJson
-import com.carvesystems.burpscript.interop.toBurpByteArray
-import com.carvesystems.burpscript.interop.toJson
+import com.carvesystems.burpscript.interop.*
 import org.graalvm.polyglot.Value
 import java.util.regex.Pattern
 
@@ -27,35 +25,48 @@ import java.util.regex.Pattern
  */
 interface ScriptHttpResponse : HttpResponseReceived {
     /** True if the response contains an attachment with a certain file name */
+    @ScriptApi
     fun hasAttachment(key: String): Boolean
 
     /** Gets an attachment, if it exists, as a string */
+    @ScriptApi
     fun getAttachment(key: String): String?
 
     /** Add an attachment to the response */
+    @ScriptApi
     fun withAttachment(key: String, data: String): ScriptHttpResponse
 
     /**
      * Parse body as JSON
      * ScriptMap | List | String | Number | Boolean | null
      */
+    @ScriptApi
     fun bodyToJson(): Any?
+
+    /**
+     *
+     */
+    @ScriptApi
+    fun bodyToBytes(): UnsignedByteArray
 
     /**
      * Serialize `value` to JSON and set the body
      */
+    @ScriptApi
     fun withJson(value: Value): HttpResponse
 
     /**
      * Set the body to signed or unsigned bytes
      */
-    fun withBytes(signedOrUnsignedBytes: Value): HttpResponse
+    @ScriptApi
+    fun withBytes(bytes: AnyBinary): HttpResponse
 
     /**
      * Drop this response, do not send this response to the client.
      * Not that this is only applicable if the script is handling a response from the proxy.
      * i.e. the script has been configured as "Proxy Only", or resp.toolSource() == ToolType.PROXY
      */
+    @ScriptApi
     fun drop(): ScriptHttpResponse
 
     /**
@@ -63,6 +74,7 @@ interface ScriptHttpResponse : HttpResponseReceived {
      * Not that this is only applicable if the script is handling a response from the proxy.
      * i.e. the script has been configured as "Proxy Only", or resp.toolSource() == ToolType.PROXY
      */
+    @ScriptApi
     fun intercept(): ScriptHttpResponse
 
     fun action(): MessageReceivedAction
@@ -160,6 +172,8 @@ class ScriptHttpResponseImpl(
 
     override fun bodyToJson(): Any? = fromJson(res.bodyToString())
 
+    override fun bodyToBytes(): UnsignedByteArray = res.body().toUnsignedByteArray()
+
     override fun contains(pattern: Pattern?): Boolean = res.contains(pattern)
 
     override fun httpVersion(): String = res.httpVersion()
@@ -217,8 +231,8 @@ class ScriptHttpResponseImpl(
 
     override fun withJson(value: Value): HttpResponse = withBody(toJson(value))
 
-    override fun withBytes(signedOrUnsignedBytes: Value): HttpResponse =
-        withBody(signedOrUnsignedBytes.toBurpByteArray())
+    override fun withBytes(bytes: AnyBinary): HttpResponse =
+        withBody(bytes.asAnyBinaryToByteArray().toBurpByteArray())
 
     override fun withBody(body: String?): HttpResponse =
         ScriptHttpResponseImpl(res.withBody(body), req, annotations, toolSource, messageId, attachments, action)

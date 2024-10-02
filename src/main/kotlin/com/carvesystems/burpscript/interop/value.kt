@@ -1,6 +1,5 @@
 package com.carvesystems.burpscript.interop
 
-import burp.api.montoya.core.ByteArray as BurpByteArray
 import org.graalvm.polyglot.Value
 import org.graalvm.polyglot.proxy.ProxyExecutable
 
@@ -9,28 +8,6 @@ fun Value.asNumber(): Number = when {
     fitsInInt() -> asInt()
     fitsInLong() -> asLong()
     else -> asDouble()
-}
-
-/**
- * Wrapper for transforming a [Value] into a [ByteArray] that allows the value
- * to be specified as an array, a hex string, or base64 string
- */
-fun Value.asBinaryArg(): ByteArray {
-    val ret: ByteArray? = if (isHostObject) {
-        when (val host: Any = asHostObject()) {
-            is ByteArray -> host
-            is BurpByteArray -> host.toByteArray()
-            is String -> host.asByteArray()
-            else -> null
-        }
-    } else if (isString) {
-        val asString = this.asString()
-        asString.asByteArray()
-    } else {
-        null
-    }
-
-    return ret ?: toByteArray()
 }
 
 fun Value.asAny(): Any? = when {

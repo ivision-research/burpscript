@@ -66,16 +66,20 @@ class ScriptHelpers {
     }
 
     @ScriptApi
-    fun b64(value: Value): String = Base64.getEncoder().encode(value.asBinaryArg()).decodeToString()
+    fun b64(value: AnyBinary): String =
+        Base64.getEncoder().encode(value.asAnyBinaryToByteArray()).decodeToString()
 
     @ScriptApi
-    fun unb64(asB64: String): ByteArray = Base64.getDecoder().decode(asB64)
+    fun unb64(asB64: String): UnsignedByteArray =
+        Base64.getDecoder().decode(asB64).toUnsignedByteArray()
 
     @ScriptApi
-    fun hex(value: Value): String = value.asBinaryArg().toHex()
+    fun hex(value: AnyBinary): String =
+        value.asAnyBinaryToByteArray().toHex()
 
     @ScriptApi
-    fun unhex(asHex: String): ByteArray = asHex.decodeHex()
+    fun unhex(asHex: String): UnsignedByteArray =
+        asHex.decodeHex().toUnsignedByteArray()
 
     @ScriptApi
     fun getCryptoHelper(): ScriptCryptoHelper {
@@ -259,7 +263,7 @@ class ScriptHelpers {
      */
     @ScriptApi
     fun execStdin(stdin: Value, program: String, vararg args: String): ExecResult = try {
-        doExecStdin(stdin.asBinaryArg(), program, *args)
+        doExecStdin(stdin.asAnyBinaryToByteArray(), program, *args)
     } catch (e: Exception) {
         LogManager.getLogger(this).error("failed to exec $program $args", e)
         throw e

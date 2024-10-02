@@ -39,7 +39,10 @@ class JsContextBuilder(
 
         // https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/Modules/
         // https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/NodeJSvsJavaScriptContext
+        // https://github.com/oracle/graaljs/blob/master/graal-js/src/com.oracle.truffle.js/src/com/oracle/truffle/js/runtime/JSContextOptions.java
         ctx.option("js.esm-eval-returns-exports", "true")
+        // TextEncoder() is in development but not supported as of 24.1.1
+        //ctx.option("js.text-encoding", "true")
         importPath?.let { path ->
             ctx.option("js.commonjs-require", "true")
             ctx.option("js.commonjs-require-cwd", path.toString())
