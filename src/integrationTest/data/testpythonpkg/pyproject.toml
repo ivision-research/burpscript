@@ -1,0 +1,9 @@
+[project]
+name = "burpscript-test-python-pkg"
+version = "0.1"
+description = ""
+readme = ""
+authors = [{name = ""}]
+license = {text = ""}
+dependencies = [
+]

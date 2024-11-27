@@ -1,6 +1,9 @@
 package com.carvesystems.burpscript
 
 import com.carvesystems.burpscript.interop.fromJson
+import com.carvesystems.burpscript.internal.testing.matchers.value.shouldContainExactly
+import com.carvesystems.burpscript.internal.testing.matchers.value.shouldBe
+import com.carvesystems.burpscript.internal.testing.tempdir
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.mockk.every
@@ -78,8 +81,8 @@ class JsScriptingTest : StringSpec() {
 
 class JsContextTest : StringSpec() {
     init {
-        "import" {
-            tempdir() { importPath ->
+        "import adjacent to script" {
+            tempdir { importPath ->
                 val ctx = JsContextBuilder().withImportPath(importPath).build()
 
                 val toImportMjs = importPath.resolve("common.mjs")
@@ -101,8 +104,8 @@ class JsContextTest : StringSpec() {
             }
         }
 
-        "require" {
-            tempdir() { importPath ->
+        "require adjacent to script" {
+            tempdir { importPath ->
                 val toRequireCJs = importPath.resolve("common.js")
                 toRequireCJs.writeText(
                     """
@@ -160,3 +163,4 @@ class JsBindingsTest : StringSpec() {
         }
     }
 }
+

@@ -1,9 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.util.*
 
 val burpVersion = "2023.10.4"
-val graalVersion = "23.1.2"
+val graalVersion = "24.0.1"
 val kotlinxVersion = "1.6.3"
-val kotestVersion = "5.4.1"
+val kotestVersion = "5.9.1"
 
 plugins {
     java
@@ -14,7 +15,7 @@ plugins {
     kotlin("plugin.serialization") version "1.9.10"
 }
 
-val pluginVersion = "0.5.0-beta"
+val pluginVersion = "0.6.1-beta"
 
 group = "com.carvesystems.burpscript"
 version = pluginVersion
@@ -25,90 +26,145 @@ repositories {
 }
 
 val isRunningInIntelliJ: Boolean = System.getProperty("idea.active") == "true"
-val isTestTaskRequested: Boolean = gradle.startParameter.taskNames.contains("test")
+val isTestTaskRequested: Boolean = gradle.startParameter.taskNames.any {
+    it.lowercase(Locale.getDefault()).contains("test")  || it == "check"
+}
 
-val langPy =
+val enableLangPy =
     System.getProperty("burpscript.langPython", "on") == "on"
             || isRunningInIntelliJ
             || isTestTaskRequested
-val langJs =
+
+val enableLangJs =
     System.getProperty("burpscript.langJs", "off") == "on"
             || isRunningInIntelliJ
             || isTestTaskRequested
 
-dependencies {
-    antlr("org.antlr:antlr4:4.10.1")
+val langDeps = mutableListOf(
+    "org.graalvm.polyglot:polyglot:$graalVersion",
+)
 
-    implementation("net.portswigger.burp.extensions:montoya-api:$burpVersion")
-    implementation("org.graalvm.polyglot:polyglot:$graalVersion")
-    if (langPy) {
-        println("Building with Python support")
-        implementation("org.graalvm.polyglot:python-community:$graalVersion")
-        implementation("org.graalvm.polyglot:llvm-community:$graalVersion")
-    }
-    if (langJs) {
-        println("Building with JavaScript support")
-        implementation("org.graalvm.polyglot:js-community:$graalVersion")
-    }
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxVersion")
-    implementation(kotlin("stdlib"))
-
-    testImplementation("io.kotest:kotest-assertions-core-jvm:$kotestVersion")
-    testImplementation("io.kotest:kotest-assertions-json:$kotestVersion")
-    testImplementation("io.kotest:kotest-framework-engine-jvm:$kotestVersion")
-    testImplementation("io.kotest:kotest-property-jvm:$kotestVersion")
-    testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
-    testImplementation("io.mockk:mockk:1.12.2")
-
+if (enableLangPy) {
+    langDeps.add("org.graalvm.polyglot:python-community:$graalVersion")
+    langDeps.add("org.graalvm.polyglot:llvm-community:$graalVersion")
+    println("Python language enabled")
 }
 
-tasks.generateGrammarSource {
-    arguments.addAll(arrayOf("-visitor", "-no-listener"))
+if (enableLangJs) {
+    langDeps.add("org.graalvm.polyglot:js-community:$graalVersion")
+    println("JavaScript language enabled")
 }
 
-tasks.generateTestGrammarSource {
-    arguments.addAll(arrayOf("-visitor", "-no-listener"))
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    sourceSets["main"].java {
-        srcDir("src/main/kotlin")
-    }
-}
-
-
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.dependsOn("generateGrammarSource")
-compileKotlin.kotlinOptions {
-    jvmTarget = "17"
-}
-val compileTestKotlin: KotlinCompile by tasks
-compileTestKotlin.dependsOn("generateTestGrammarSource")
-compileTestKotlin.kotlinOptions {
-    jvmTarget = "17"
-}
-
-val checkLanguageTask = "checkLanguage"
-
+val testDeps = listOf(
+    "io.kotest:kotest-assertions-core-jvm:$kotestVersion",
+    "io.kotest:kotest-assertions-json:$kotestVersion",
+    "io.kotest:kotest-framework-engine-jvm:$kotestVersion",
+    "io.kotest:kotest-property-jvm:$kotestVersion",
+    "io.kotest:kotest-runner-junit5:$kotestVersion",
+    "io.mockk:mockk:1.12.2",
+)
 
 val generatedDir: File = layout.buildDirectory.file("generated/source/burpscript/main/kotlin").get().asFile
 
+val internalTarget = "internal"
+
+val integrationTestTarget = "integrationTest"
+
 sourceSets {
     main {
-        kotlin {
-            srcDir(generatedDir)
+        java {
+            srcDirs(
+                "src/main/kotlin",
+                generatedDir
+            )
+        }
+    }
+
+    create(internalTarget) {
+        java {
+            srcDir("src/internal/kotlin")
         }
     }
 }
 
-tasks {
-    register(checkLanguageTask) {
-        val langPy = System.getProperty("burpscript.langPython", "on") == "on"
-        val langJs = System.getProperty("burpscript.langJs", "off") == "on"
+dependencies {
+    antlr("org.antlr:antlr4:4.10.1")
 
-        if (!(langPy || langJs)) {
-            error("a guest language must be configured")
+    api("net.portswigger.burp.extensions:montoya-api:$burpVersion")
+    implementation(kotlin("stdlib"))
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxVersion")
+    langDeps.forEach { dependencies.add("implementation", it) }
+
+    "${internalTarget}Implementation"(project)
+    langDeps.forEach { dependencies.add("${internalTarget}Implementation", it) }
+    testDeps.forEach { dependencies.add("${internalTarget}Implementation", it) }
+}
+
+testing {
+    suites {
+        withType<JvmTestSuite> {
+            useJUnitJupiter()
+
+            dependencies {
+                implementation(project())
+                implementation(sourceSets[internalTarget].output)
+                langDeps.forEach { implementation(it) }
+                testDeps.forEach { implementation(it) }
+            }
+        }
+
+        register<JvmTestSuite>(integrationTestTarget) {
+            sources {
+                java {
+                    srcDir("src/integrationTest/kotlin")
+                }
+            }
+
+            targets {
+                all {
+                    testTask.configure {
+                        shouldRunAfter("test")
+                    }
+                }
+            }
+        }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+tasks {
+    withType<KotlinCompile> {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+
+    withType<AntlrTask> {
+        arguments.addAll(arrayOf("-visitor", "-no-listener"))
+    }
+
+    compileKotlin {
+        dependsOn("generateGrammarSource")
+    }
+
+    compileTestKotlin {
+        dependsOn("generateTestGrammarSource")
+    }
+
+    named("compileIntegrationTestKotlin") {
+        dependsOn("generateIntegrationTestGrammarSource")
+    }
+
+    named("compileInternalKotlin") {
+        dependsOn("generateInternalGrammarSource")
+    }
+
+    val checkLanguage by registering {
+        if (!(enableLangPy || enableLangJs)) {
+            error("A guest language must be configured")
         }
     }
 
@@ -120,11 +176,11 @@ tasks {
     }
 
     jar {
-        dependsOn(getTasks()[checkLanguageTask])
+        dependsOn(checkLanguage)
     }
 
-    withType<Test> {
-        useJUnitPlatform()
+    check {
+        dependsOn(named(integrationTestTarget))
     }
 }
 

@@ -26,25 +26,37 @@ open class Addon() {
     private var resFilter: ResponseFilter? = null
 
     fun load(value: Value) {
-
         val keys = value.memberKeys
 
         keys.forEach {
             logger.debug("Script has key: $it")
         }
 
+        //
+        // Filter expressions are parsed first. Loading is stopped if these fail,
+        // which ensures handlers are not called until filters are valid.
+        //
+
+        try {
+            reqFilter = getString(value, "REQ_FILTER", keys)?.let {
+                RequestFilter.parse(it)
+            }
+        } catch (e: Exception) {
+            throw Exception("Error parsing REQ_FILTER", e)
+        }
+
+        try {
+            resFilter = getString(value, "RES_FILTER", keys)?.let {
+                ResponseFilter.parse(it)
+            }
+        } catch (e: Exception) {
+            throw Exception("Error parsing RES_FILTER", e)
+        }
+
         initialize = getFunction(value, "initialize", keys)
         cleanup = getFunction(value, "cleanup", keys)
         onReq = getFunction(value, listOf("on_request", "onRequest"), keys)
         onRes = getFunction(value, listOf("on_response", "onResponse"), keys)
-
-        // These throw on syntax error. Do we want to just catch and log?
-        reqFilter = getString(value, "REQ_FILTER", keys)?.let {
-            RequestFilter.parse(it)
-        }
-        resFilter = getString(value, "RES_FILTER", keys)?.let {
-            ResponseFilter.parse(it)
-        }
 
         logger.debug("Loaded script, functions:\ninitialize = $initialize\ncleanup = $cleanup\nonReq = $onReq\nonRes = $onRes\nreqFilter = $reqFilter\nresFilter = $resFilter")
 
@@ -115,9 +127,7 @@ open class Addon() {
             logger.error("Java failed to invoke onRequest callback", e)
             req
         }
-
     }
-
 
     private fun onResponse(cb: Value, res: ScriptHttpResponse): ScriptHttpResponse {
         if (!shouldHandle(res)) {
@@ -142,13 +152,14 @@ open class Addon() {
     private fun shouldHandle(res: ScriptHttpResponse): Boolean = resFilter?.matches(res) ?: true
 }
 
-class Script private constructor(
+/** Script files are not parsed and loaded on init. Must call [reload] or instantiate with [Script.load] */
+class Script(
     val id: UUID,
     private val api: MontoyaApi,
     private val path: Path,
     private val language: Language,
     private var opts: Options,
-    private val ctxBuilder: ContextBuilder,
+    private val ctxBuilder: ContextBuilder = newContextBuilder(language),
 ) : Addon() {
 
     private lateinit var ctx: Context
@@ -225,11 +236,17 @@ class Script private constructor(
             // TODO Investigate sharing an engine
             ctx = ctxBuilder.build()
         } catch (e: IllegalStateException) {
+            // polyglotimpl.DisableClassPathIsolation = true is the default as of 23.1.2
+            // https://github.com/oracle/graal/commit/548bd7f2166254ef66ceb96a33a440101932b6d5
             throw IllegalStateException(
-                "Try adding -Dpolyglotimpl.DisableClassPathIsolation=true to BurpSuite vm options and restarting. See README",
+                "Try adding -Dpolyglotimpl.DisableClassPathIsolation=true to BurpSuite vm options and restarting. See https://portswigger.net/burp/documentation/desktop/troubleshooting/setting-java-options",
                 e
             )
         }
+        // Building the context can also throw an UnsatisfiedLinkError. This happens if the extension
+        // was loaded multiple times. The truffle JNI shared object is implicitly loaded on first use,
+        // and can only be loaded once.
+        // https://github.com/oracle/graal/blob/master/truffle/src/com.oracle.truffle.runtime/src/com/oracle/truffle/runtime/ModulesSupport.java
 
         val src = Source.newBuilder(language.id, path.toFile()).build()
         val evaluated = ctx.eval(src)
@@ -245,7 +262,11 @@ class Script private constructor(
         super.unload()
         addons.forEach { it.unload() }
         addons.clear()
-        ctx.close()
+
+        // We may arrive here from a different thread than the one that is potentially executing
+        // something within the context. Per the "Thread-Safety" section of Context, we're supposed
+        // to use close(cancelIfExecuting=true).
+        ctx.close(true)
     }
 
     private fun loadAddons(value: Value) {
@@ -301,24 +322,18 @@ class Script private constructor(
         /**
          * Load the given [Path] as a script of the given language.
          */
-        fun load(id: UUID, api: MontoyaApi, path: Path, language: Language, opts: Options): Script {
-            return load(id, api, path, language, opts, newContextBuilder(language))
-        }
-
-        /** For tests */
         fun load(
             id: UUID,
             api: MontoyaApi,
             path: Path,
             language: Language,
             opts: Options,
-            builder: ContextBuilder,
+            builder: ContextBuilder = newContextBuilder(language)
         ): Script {
             return Script(id, api, path, language, opts, builder).apply { reload() }
         }
 
-        /** For tests */
-        fun newContextBuilder(language: Language): ContextBuilder =
+        private fun newContextBuilder(language: Language): ContextBuilder =
             when (language) {
                 Language.JavaScript -> JsContextBuilder()
                 Language.Python -> PythonContextBuilder()

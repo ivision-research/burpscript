@@ -1,6 +1,6 @@
 package com.carvesystems.burpscript.interop
 
-import com.carvesystems.burpscript.shouldBe
+import com.carvesystems.burpscript.internal.testing.matchers.value.shouldBe
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import org.graalvm.polyglot.Context

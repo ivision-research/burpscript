@@ -7,7 +7,9 @@ import burp.api.montoya.http.handler.HttpRequestToBeSent
 import burp.api.montoya.internal.ObjectFactoryLocator
 import com.carvesystems.burpscript.interop.fromJson
 import com.carvesystems.burpscript.interop.toByteArray
-import com.carvesystems.burpscript.shouldBe
+import com.carvesystems.burpscript.internal.testing.matchers.value.shouldBe
+import com.carvesystems.burpscript.internal.testing.matchers.value.shouldContainExactly
+import com.carvesystems.burpscript.internal.testing.tempdir
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
@@ -236,7 +238,7 @@ class PythonScriptingTest : StringSpec() {
 
         "withBytes allows passing byte arrays" {
             val script = """
-                |def ${TEST_FUNCTION}(req):
+                |def $TEST_FUNCTION(req):
                 |   return req.withBytes(b'\x00\x7f\x80\xff')
             """.trimMargin()
 
@@ -272,7 +274,7 @@ class PythonScriptingTest : StringSpec() {
 
         "can pass Python arrays to withJson" {
             val script = """
-                |def ${TEST_FUNCTION}(req):
+                |def $TEST_FUNCTION(req):
                 |   return req.withJson(
                 |       [ True, None, False, { 'inner': 'value' } ]
                 |   )
@@ -295,7 +297,7 @@ class PythonScriptingTest : StringSpec() {
 
         "can pass Python dicts to withJson" {
             val script = """
-                |def ${TEST_FUNCTION}(req):
+                |def $TEST_FUNCTION(req):
                 |   return req.withJson({
                 |       'string': 'string',
                 |       'dict': {
@@ -332,7 +334,7 @@ class PythonScriptingTest : StringSpec() {
 
         "can use json like dict" {
             val script = """
-                def ${TEST_FUNCTION}(req):
+                def $TEST_FUNCTION(req):
                     d = req.bodyToJson()
                     d["obj"]["key"] = "modified"
                     d["obj"]["new"] = "value"
@@ -376,8 +378,8 @@ class PythonScriptingTest : StringSpec() {
 
 class PythonContextTest : StringSpec() {
     init {
-        "import" {
-            tempdir() { importPath ->
+        "import from path" {
+            tempdir { importPath ->
                 val toImport = importPath.resolve("common.py")
                 toImport.writeText(
                     """

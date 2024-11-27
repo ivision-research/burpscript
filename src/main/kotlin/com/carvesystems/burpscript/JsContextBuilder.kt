@@ -4,7 +4,9 @@ import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.Value
 import java.nio.file.Path
 
-class JsContextBuilder() : ContextBuilder {
+class JsContextBuilder(
+    private val langOptions: JsLangOptions = Config.burpScript.js
+) : ContextBuilder {
     private val globalBindings: MutableMap<String, Any> = mutableMapOf()
     private var consoleLogger: ScriptLogger? = null
     private var importPath: Path? = null
@@ -34,13 +36,16 @@ class JsContextBuilder() : ContextBuilder {
 
     private fun updateContextBuilder(ctx: Context.Builder) {
         ctx.allowExperimentalOptions(true)
+
+        // https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/Modules/
+        // https://docs.oracle.com/en/graalvm/enterprise/21/docs/reference-manual/js/NodeJSvsJavaScriptContext
         ctx.option("js.esm-eval-returns-exports", "true")
         importPath?.let { path ->
             ctx.option("js.commonjs-require", "true")
             ctx.option("js.commonjs-require-cwd", path.toString())
         }
 
-        Config.burpScript.js?.contextOptions?.forEach {
+        langOptions.contextOptions?.forEach {
             try {
                 ctx.option(it.option, it.value)
             } catch (e: Exception) {

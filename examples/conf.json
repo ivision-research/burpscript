@@ -1,6 +1,7 @@
 {
     "python": {
-        "executablePath": "/usr/bin/python3",
+        "executablePath": "/path/to/venv/bin/python3",
+        "pythonPath": "/path/to/venv/lib/python3.11/site-packages:/path/to/venv/lib64/python3.11/site-packages",
         "contextOptions": [
             {
                 "opt": "python.option",
