@@ -28,10 +28,6 @@ open class Addon() {
     fun load(value: Value) {
         val keys = value.memberKeys
 
-        keys.forEach {
-            logger.debug("Script has key: $it")
-        }
-
         //
         // Filter expressions are parsed first. Loading is stopped if these fail,
         // which ensures handlers are not called until filters are valid.

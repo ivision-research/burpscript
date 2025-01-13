@@ -45,6 +45,8 @@ class ExecResult(
  */
 class ScriptHelpers {
 
+    private val kvStore = ScriptMap()
+
     /**
      * Helper to compile a Java [Pattern]
      *
@@ -275,4 +277,9 @@ class ScriptHelpers {
         HighlightColor.highlightColor(color)
     }
 
+    /**
+     * Provide access to a key/value store that persists data across reloads
+     */
+    @ScriptApi
+    fun getKVStore(): ScriptMap = kvStore
 }
