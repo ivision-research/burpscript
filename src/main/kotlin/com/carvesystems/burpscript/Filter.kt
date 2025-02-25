@@ -29,6 +29,7 @@ private val functions = listOf(
     `header-matches`::class.java,
     `has-header`::class.java,
     `has-json-key`::class.java,
+    `has-cookie`::class.java,
     `has-form-param`::class.java,
     `has-query-param`::class.java,
     `body-matches`::class.java,
@@ -517,6 +518,17 @@ private class `has-attachment`(
         when (arg) {
             is FilterArg.Request -> keys.any { arg.req.hasAttachment(it) }
             is FilterArg.Response -> keys.any { arg.res.hasAttachment(it) }
+        }
+}
+
+@Params([Param("cookie", ArgType.String, isVararg = true)])
+private class `has-cookie`(
+    private val cookies: List<String>,
+) : VarargStringStatement() {
+    override fun matches(arg: FilterArg): Boolean =
+        when(arg) {
+            is FilterArg.Request -> cookies.any { arg.req.hasParameter(it, HttpParameterType.COOKIE) }
+            is FilterArg.Response -> cookies.any { arg.res.hasCookie(it) }
         }
 }
 

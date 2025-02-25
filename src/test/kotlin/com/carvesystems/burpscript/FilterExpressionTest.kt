@@ -314,6 +314,45 @@ class FilterExpressionTest : StringSpec({
         exp.matches(resNotJsonObject).shouldBeFalse()
     }
 
+    "has-cookie" {
+        val req = mockk<ScriptHttpRequest>()
+        every {
+            req.hasParameter("foo", HttpParameterType.COOKIE)
+        } returns true
+        every {
+            req.hasParameter(not("foo"), any())
+        } returns false
+
+        val res = mockk<ScriptHttpResponse>()
+        every {
+            res.initiatingRequest()
+        } returns req
+        every {
+            res.hasCookie("foo")
+        } returns true
+        every {
+            res.hasCookie(not("foo"))
+        } returns false
+
+        val exp = parse(
+            "(has-cookie \"foo\")"
+        )
+        exp.matches(req).shouldBeTrue()
+        exp.matches(res).shouldBeTrue()
+
+        val exp2 = parse(
+            "(has-cookie \"bar\" \"foo\")"
+        )
+        exp2.matches(req).shouldBeTrue()
+        exp2.matches(res).shouldBeTrue()
+
+        val exp3 = parse(
+            "(has-cookie \"bar\")"
+        )
+        exp3.matches(req).shouldBeFalse()
+        exp3.matches(res).shouldBeFalse()
+    }
+
     "has-query-param" {
         val req = mockk<ScriptHttpRequest>()
         every {

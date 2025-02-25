@@ -18,6 +18,7 @@ Strings can be provided as raw strings (`r"..."`) or normal strings (`"..."`). R
 -   [has-header VARARG_STRING](#has-header-vararg_string)
 -   [body-contains PATTERN](#body-contains-pattern)
 -   [body-matches PATTERN](#body-matches-pattern)
+-   [has-cookie VARARG_STRING](#has-cookie-vararg_string)
 -   [has-json-key VARARG_STRING](#has-json-key-vararg_string)
 -   [has-query-param VARARG_STRING](#has-query-param-vararg_string)
 -   [has-form-param VARARG_STRING](#has-form-param-vararg_string)
@@ -148,6 +149,17 @@ Checks if the entire body matches the provided pattern
 ```
 (body-matches "^[0-9]+$")
 ```
+
+## has-cookie VARARG_STRING
+
+Searched for any of the provided cookie names in the req/res body. Returns true if any of the provided cookies exist.
+
+
+```
+(has-json-key "user.isSuperAdmin")
+```
+
+
 
 
 ## has-json-key VARARG_STRING
