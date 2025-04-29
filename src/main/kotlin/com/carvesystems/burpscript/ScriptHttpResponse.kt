@@ -345,6 +345,17 @@ class ScriptHttpResponseImpl(
             attachments,
             action
         )
+
+    fun withIntStatusCode(code: Int): HttpResponse = 
+        ScriptHttpResponseImpl(
+            res.withStatusCode(code.toShort()),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
 }
 
 // withStatusCode(statusCode()) Null pointer exception? what?
