@@ -2,6 +2,7 @@ package com.carvesystems.burpscript
 
 import burp.api.montoya.core.ByteArray
 import burp.api.montoya.utilities.URLUtils
+import burp.api.montoya.utilities.URLEncoding
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -17,6 +18,8 @@ class TestUrlUtils : URLUtils {
     override fun encode(byteArray: ByteArray?): ByteArray {
         TODO("Not yet implemented")
     }
+
+    override fun encode(string: String?, encoding: URLEncoding): String = encode(string)
 
     override fun encode(string: String?): String = URLEncoder.encode(string, StandardCharsets.UTF_8)
 }

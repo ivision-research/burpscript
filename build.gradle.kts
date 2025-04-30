@@ -1,21 +1,22 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.*
 
-val burpVersion = "2023.10.4"
-val graalVersion = "24.0.1"
-val kotlinxVersion = "1.6.3"
+val burpVersion = "2025.4"
+val graalVersion = "24.2.1"
+val kotlinxVersion = "1.8.1"
 val kotestVersion = "5.9.1"
 
 plugins {
     java
     `java-library`
-    kotlin("jvm") version "1.9.10"
+    kotlin("jvm") version "2.1.10"
     id("antlr")
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    kotlin("plugin.serialization") version "1.9.10"
+    kotlin("plugin.serialization") version "2.1.10"
 }
 
-val pluginVersion = "0.8.0"
+val pluginVersion = "0.9.0"
 
 group = "com.carvesystems.burpscript"
 version = pluginVersion
@@ -61,7 +62,7 @@ val testDeps = listOf(
     "io.kotest:kotest-framework-engine-jvm:$kotestVersion",
     "io.kotest:kotest-property-jvm:$kotestVersion",
     "io.kotest:kotest-runner-junit5:$kotestVersion",
-    "io.mockk:mockk:1.12.2",
+    "io.mockk:mockk:1.14.2",
 )
 
 val generatedDir: File = layout.buildDirectory.file("generated/source/burpscript/main/kotlin").get().asFile
@@ -132,15 +133,16 @@ testing {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_22
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_22)
+    }
 }
 
 tasks {
-    withType<KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "17"
-        }
-    }
 
     withType<AntlrTask> {
         arguments.addAll(arrayOf("-visitor", "-no-listener"))

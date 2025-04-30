@@ -1,7 +1,7 @@
 {
   description = "Burpscript";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/24.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -13,7 +13,7 @@
     in {
       devShells.default = let
         packages = with pkgs; [
-          jdk17
+          jdk22
           gradle
           kotlin
 
@@ -25,7 +25,7 @@
         inherit packages;
 
         shellHook = ''
-        export JAVA_HOME=${pkgs.jdk17}
+        export JAVA_HOME=${pkgs.jdk22}
         export PATH=${pkgs.lib.makeBinPath packages}:$PATH
         export BURPSCRIPT_NIX=1
         '';

@@ -259,5 +259,5 @@ inline fun <reified T> toJson(value: T, format: Json = scriptJson): String =
     format.encodeToString(value)
 
 inline fun <reified T> parse(value: String): T {
-    return Json {}.decodeFromString<T>(value)
+    return Json.decodeFromString<T>(value)
 }

@@ -4,7 +4,6 @@ import burp.api.montoya.core.Annotations
 import burp.api.montoya.core.ByteArray
 import burp.api.montoya.core.ToolType
 import burp.api.montoya.http.handler.HttpRequestToBeSent
-import burp.api.montoya.internal.ObjectFactoryLocator
 import com.carvesystems.burpscript.interop.fromJson
 import com.carvesystems.burpscript.interop.toByteArray
 import com.carvesystems.burpscript.internal.testing.matchers.value.shouldBe
@@ -76,8 +75,6 @@ class PythonScriptingTest : StringSpec() {
             every {
                 req.withBody(capture(bytesInput))
             } returns req
-
-            ObjectFactoryLocator.FACTORY
 
             exec(script, wrapped)
 

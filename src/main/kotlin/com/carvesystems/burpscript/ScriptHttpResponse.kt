@@ -69,6 +69,9 @@ interface ScriptHttpResponse : HttpResponseReceived {
     @ScriptApi
     fun drop(): ScriptHttpResponse
 
+    @ScriptApi
+    fun withIntStatusCode(code: Int): ScriptHttpResponse
+
     /**
      * Cause the proxy to present this response for review and editing in the Intercept tab
      * Not that this is only applicable if the script is handling a response from the proxy.
@@ -346,7 +349,74 @@ class ScriptHttpResponseImpl(
             action
         )
 
-    fun withIntStatusCode(code: Int): HttpResponse = 
+    override fun withRemovedHeaders(headers: List<HttpHeader>): HttpResponse =
+         ScriptHttpResponseImpl(
+            res.withRemovedHeaders(headers),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withRemovedHeaders(vararg headers: HttpHeader): HttpResponse =
+         ScriptHttpResponseImpl(
+            res.withRemovedHeaders(*headers),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withUpdatedHeaders(vararg headers: HttpHeader): HttpResponse =
+         ScriptHttpResponseImpl(
+            res.withUpdatedHeaders(*headers),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withUpdatedHeaders(headers: List<HttpHeader>): HttpResponse =
+         ScriptHttpResponseImpl(
+            res.withUpdatedHeaders(headers),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withAddedHeaders(headers: List<HttpHeader>): HttpResponse =
+         ScriptHttpResponseImpl(
+            res.withAddedHeaders(headers),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+
+    override fun withAddedHeaders(vararg headers: HttpHeader): HttpResponse =
+         ScriptHttpResponseImpl(
+            res.withAddedHeaders(*headers),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withIntStatusCode(code: Int): ScriptHttpResponse = 
         ScriptHttpResponseImpl(
             res.withStatusCode(code.toShort()),
             req,

@@ -201,13 +201,21 @@ class ScriptHttpRequestImpl(
 
     override fun parameters(): MutableList<ParsedHttpParameter> = req.parameters()
 
+    override fun parameter(name: String?): ParsedHttpParameter = req.parameter(name)
+
     override fun parameter(name: String?, type: HttpParameterType?): ParsedHttpParameter = req.parameter(name, type)
+
+    override fun parameterValue(name: String?): String = req.parameterValue(name)
 
     override fun parameterValue(name: String?, type: HttpParameterType?): String = req.parameterValue(name, type)
 
     override fun parameters(type: HttpParameterType?): MutableList<ParsedHttpParameter> = req.parameters(type)
 
     override fun path(): String? = req.path()
+
+    override fun query(): String? = req.query()
+
+    override fun fileExtension(): String? = req.fileExtension()
 
     override fun pathWithoutQuery(): String? = req.pathWithoutQuery()
 
@@ -265,6 +273,66 @@ class ScriptHttpRequestImpl(
         )
     }
 
+    override fun withRemovedHeaders(headers: List<HttpHeader>): HttpRequest =
+         ScriptHttpRequestImpl(
+            req.withRemovedHeaders(headers),
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withRemovedHeaders(vararg headers: HttpHeader): HttpRequest =
+         ScriptHttpRequestImpl(
+            req.withRemovedHeaders(*headers),
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withUpdatedHeaders(vararg headers: HttpHeader): HttpRequest =
+         ScriptHttpRequestImpl(
+            req.withUpdatedHeaders(*headers),
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withUpdatedHeaders(headers: List<HttpHeader>): HttpRequest =
+         ScriptHttpRequestImpl(
+            req.withUpdatedHeaders(headers),
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withAddedHeaders(headers: List<HttpHeader>): HttpRequest =
+         ScriptHttpRequestImpl(
+            req.withAddedHeaders(headers),
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withAddedHeaders(vararg headers: HttpHeader): HttpRequest =
+         ScriptHttpRequestImpl(
+            req.withAddedHeaders(*headers),
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+       
     override fun withAddedHeader(header: HttpHeader?): HttpRequest =
         ScriptHttpRequestImpl(req.withAddedHeader(header), annotations, toolSource, messageId, attachments, action)
 
