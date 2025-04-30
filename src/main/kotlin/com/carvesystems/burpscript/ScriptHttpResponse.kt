@@ -69,9 +69,6 @@ interface ScriptHttpResponse : HttpResponseReceived {
     @ScriptApi
     fun drop(): ScriptHttpResponse
 
-    @ScriptApi
-    fun withIntStatusCode(code: Int): ScriptHttpResponse
-
     /**
      * Cause the proxy to present this response for review and editing in the Intercept tab
      * Not that this is only applicable if the script is handling a response from the proxy.
@@ -181,6 +178,10 @@ class ScriptHttpResponseImpl(
 
     override fun httpVersion(): String = res.httpVersion()
 
+    override fun statusCode(): Short = res.statusCode()
+
+    override fun reasonPhrase(): String = res.reasonPhrase()
+
     override fun contains(searchTerm: String?, caseSensitive: Boolean): Boolean =
         res.contains(searchTerm, caseSensitive)
 
@@ -220,11 +221,7 @@ class ScriptHttpResponseImpl(
 
     override fun mimeType(): MimeType = res.mimeType()
 
-    override fun reasonPhrase(): String = res.reasonPhrase()
-
     override fun statedMimeType(): MimeType = res.statedMimeType()
-
-    override fun statusCode(): Short = res.statusCode()
 
     override fun toByteArray(): ByteArray = res.toByteArray()
 
@@ -269,9 +266,17 @@ class ScriptHttpResponseImpl(
     override fun withMarkers(vararg markers: Marker?): HttpResponse =
         ScriptHttpResponseImpl(res.withMarkers(*markers), req, annotations, toolSource, messageId, attachments, action)
 
+    override fun withMarkers(markers: MutableList<Marker>?): HttpResponse =
+        ScriptHttpResponseImpl(res.withMarkers(markers), req, annotations, toolSource, messageId, attachments, action)
+
+    // You may ask yourself, "Why do we `.clone()` with withReasonPhrase,
+    // withStatusCode, withHttpVersion and that is a valid question. It turns
+    // out Burp's default InterceptedResponse implementation doesn't implement
+    // these methods and just returns null. Whatever it returns after we clone
+    // does implement those. So.. hey it works at least.
     override fun withHttpVersion(httpVersion: String?): HttpResponse =
         ScriptHttpResponseImpl(
-            res.withHttpVersion(httpVersion),
+            res.clone().withHttpVersion(httpVersion),
             req,
             annotations,
             toolSource,
@@ -280,12 +285,20 @@ class ScriptHttpResponseImpl(
             action
         )
 
-    override fun withMarkers(markers: MutableList<Marker>?): HttpResponse =
-        ScriptHttpResponseImpl(res.withMarkers(markers), req, annotations, toolSource, messageId, attachments, action)
-
     override fun withReasonPhrase(reasonPhrase: String?): HttpResponse =
         ScriptHttpResponseImpl(
-            res.withReasonPhrase(reasonPhrase),
+            res.clone().withReasonPhrase(reasonPhrase),
+            req,
+            annotations,
+            toolSource,
+            messageId,
+            attachments,
+            action
+        )
+
+    override fun withStatusCode(statusCode: Short): HttpResponse =
+        ScriptHttpResponseImpl(
+            res.clone().withStatusCode(statusCode),
             req,
             annotations,
             toolSource,
@@ -308,17 +321,6 @@ class ScriptHttpResponseImpl(
     override fun withRemovedHeader(name: String?): HttpResponse =
         ScriptHttpResponseImpl(
             res.withRemovedHeader(name),
-            req,
-            annotations,
-            toolSource,
-            messageId,
-            attachments,
-            action
-        )
-
-    override fun withStatusCode(statusCode: Short): HttpResponse =
-        ScriptHttpResponseImpl(
-            res.withStatusCode(statusCode),
             req,
             annotations,
             toolSource,
@@ -416,9 +418,10 @@ class ScriptHttpResponseImpl(
             action
         )
 
-    override fun withIntStatusCode(code: Int): ScriptHttpResponse = 
+    // Force a clone to ensure it is modified, used when we set things manually
+    fun clone(): ScriptHttpResponseImpl =
         ScriptHttpResponseImpl(
-            res.withStatusCode(code.toShort()),
+            res.clone(),
             req,
             annotations,
             toolSource,
@@ -426,7 +429,7 @@ class ScriptHttpResponseImpl(
             attachments,
             action
         )
+
 }
 
-// withStatusCode(statusCode()) Null pointer exception? what?
 fun HttpResponse.clone(): HttpResponse = withBody(body())
