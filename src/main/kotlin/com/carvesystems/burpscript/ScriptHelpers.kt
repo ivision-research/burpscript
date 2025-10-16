@@ -17,9 +17,9 @@ import java.util.regex.Pattern
  * Result of executing an external command
  */
 class ExecResult(
-    @ScriptApi val code: Int,
-    @ScriptApi val stdout: ByteArray,
-    @ScriptApi val stderr: ByteArray,
+    @param:ScriptApi val code: Int,
+    @param:ScriptApi val stdout: ByteArray,
+    @param:ScriptApi val stderr: ByteArray,
 ) {
     /**
      * Helper to check that the status code is 0

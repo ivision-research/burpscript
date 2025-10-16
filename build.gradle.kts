@@ -3,20 +3,20 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.*
 
 val burpVersion = "2025.4"
-val graalVersion = "24.2.1"
+val graalVersion = "25.0.0"
 val kotlinxVersion = "1.8.1"
 val kotestVersion = "5.9.1"
 
 plugins {
     java
     `java-library`
-    kotlin("jvm") version "2.1.10"
+    kotlin("jvm") version "2.2.20"
     id("antlr")
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    kotlin("plugin.serialization") version "2.1.10"
+    kotlin("plugin.serialization") version "2.2.20"
 }
 
-val pluginVersion = "0.9.0"
+val pluginVersion = "0.10.0"
 
 group = "com.carvesystems.burpscript"
 version = pluginVersion
@@ -133,12 +133,12 @@ testing {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_22
+    sourceCompatibility = JavaVersion.VERSION_24
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_22)
+        jvmTarget.set(JvmTarget.JVM_24)
     }
 }
 

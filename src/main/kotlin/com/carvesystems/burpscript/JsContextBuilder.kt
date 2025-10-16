@@ -27,10 +27,11 @@ class JsContextBuilder(
     }
 
     override fun build(): Context =
-        Context.newBuilder("js").apply {
+        with(Context.newBuilder("js")) {
             allowAllAccess(true)
             updateContextBuilder(this)
-        }.build().apply {
+            build()
+        }.apply {
             addBindings(this.getBindings("js"))
         }
 

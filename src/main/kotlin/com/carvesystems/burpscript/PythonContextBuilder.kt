@@ -48,10 +48,11 @@ class PythonContextBuilder(
     }
 
     override fun build(): Context =
-        Context.newBuilder(Language.Python.id).apply {
+        with(Context.newBuilder(Language.Python.id)) {
             allowAllAccess(true)
             updateContextBuilder(this)
-        }.build().apply {
+            build()
+        }.apply {
             addBindings(this.getBindings(Language.Python.id))
         }
 

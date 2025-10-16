@@ -24,9 +24,10 @@ interface ContextBuilder {
         }
 
         override fun build(): Context {
-            val ctx = Context.newBuilder(language.id).apply {
+            val ctx = with(Context.newBuilder(language.id)) {
                 allowAllAccess(true)
-            }.build()
+                build()
+            }
 
             ctx.getBindings(language.id).apply {
                 globalBindings.forEach { (key, value) ->
