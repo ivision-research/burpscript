@@ -190,10 +190,4 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
-bin/
-gradle
-gradlew
-gradlew.bat
-
-
 # End of https://www.toptal.com/developers/gitignore/api/intellij,kotlin,gradle,vim
