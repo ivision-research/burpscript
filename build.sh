@@ -61,7 +61,13 @@ fi
 
 args="$args shadowJar -x check"
 
-if gradle $args; then
+gradle=./gradlew
+
+if [ -n "$BURPSCRIPT_NIX" ]; then
+    gradle=gradle
+fi
+
+if $gradle $args; then
     ver=$(grep "pluginVersion =" build.gradle.kts | cut -d'=' -f2 | tr -d '" ')
     printf "JAR file can be found at build/libs/burpscript-plugin-%s.jar\n" "$ver"
 fi

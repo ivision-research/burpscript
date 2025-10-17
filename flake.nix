@@ -1,7 +1,7 @@
 {
   description = "Burpscript";
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/25.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -12,20 +12,27 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in {
       devShells.default = let
+
+        jdk = pkgs.jdk24;
+        gradle = pkgs.gradle-unwrapped.override {
+          java = jdk;
+        };
+
         packages = with pkgs; [
-          jdk22
-          gradle
           kotlin
 
           # For tests
           python3
           nodePackages.npm
+        ] ++ [
+          jdk
+          gradle
         ];
       in  pkgs.mkShell {
         inherit packages;
 
         shellHook = ''
-        export JAVA_HOME=${pkgs.jdk22}
+        export JAVA_HOME=${jdk}
         export PATH=${pkgs.lib.makeBinPath packages}:$PATH
         export BURPSCRIPT_NIX=1
         '';
