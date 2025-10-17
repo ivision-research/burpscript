@@ -9,19 +9,53 @@ import org.graalvm.polyglot.Source
 import org.graalvm.polyglot.Value
 import java.nio.file.Path
 import java.util.*
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
 
-open class Addon() {
+private class Functions(
+    var onReq: Value? = null,
+    var onRes: Value? = null,
+    var cleanup: Value? = null,
+    var initialize: Value? = null
+) {
 
-    protected val logger = LogManager.getLogger(this)
+    fun clear() {
+        onRes = null
+        onReq = null
+        initialize = null
+        cleanup = null
+    }
 
-    private var onReq: Value? = null
-    private var onRes: Value? = null
-    private var cleanup: Value? = null
-    private var initialize: Value? = null
 
+    fun reload(obj: Value) {
+        val keys = obj.memberKeys
+        initialize = getFunction(obj, "initialize", keys)
+        cleanup = getFunction(obj, "cleanup", keys)
+        onReq = getFunction(obj, listOf("on_request", "onRequest"), keys)
+        onRes = getFunction(obj, listOf("on_response", "onResponse"), keys)
+    }
+
+    companion object {
+
+        private fun getFunction(evaluated: Value, name: String, keys: Set<String>): Value? =
+            getFunction(evaluated, listOf(name), keys)
+
+        private fun getFunction(evaluated: Value, names: Collection<String>, keys: Set<String>): Value? =
+            keys.find {
+                names.contains(it) && evaluated.getMember(it).canExecute()
+            }?.let {
+                evaluated.getMember(it)
+            }
+    }
+}
+
+private class Addon(
+    private val logger: Logger
+) {
+
+    private val functions = Functions()
     private var reqFilter: RequestFilter? = null
     private var resFilter: ResponseFilter? = null
 
@@ -49,37 +83,34 @@ open class Addon() {
             throw Exception("Error parsing RES_FILTER", e)
         }
 
-        initialize = getFunction(value, "initialize", keys)
-        cleanup = getFunction(value, "cleanup", keys)
-        onReq = getFunction(value, listOf("on_request", "onRequest"), keys)
-        onRes = getFunction(value, listOf("on_response", "onResponse"), keys)
-
-        logger.debug("Loaded script, functions:\ninitialize = $initialize\ncleanup = $cleanup\nonReq = $onReq\nonRes = $onRes\nreqFilter = $reqFilter\nresFilter = $resFilter")
+        functions.reload(value)
+        logger.debug("Loaded :\ninitialize = ${functions.initialize}\ncleanup = ${functions.cleanup}\nonReq = ${functions.onReq}\nonRes = ${functions.onRes}\nreqFilter = $reqFilter\nresFilter = $resFilter")
 
         try {
-            initialize?.executeVoid()
+            functions.initialize?.executeVoid()
         } catch (e: Exception) {
             logger.error("script initialize failed", e)
         }
     }
 
-    open fun unload() {
+
+    fun unload() {
         try {
-            cleanup?.executeVoid()
+            functions.cleanup?.executeVoid()
         } catch (e: Exception) {
             logger.error("Failed to execute cleanup before reload", e)
         }
-        onReq = null
-        onRes = null
-        cleanup = null
-        initialize = null
+        functions.clear()
         reqFilter = null
         resFilter = null
     }
 
     companion object {
-        fun fromValue(value: Value): Addon =
-            Addon().apply { load(value) }
+        /**
+         * Create an owned Addon from the given Value
+         */
+        fun fromValue(value: Value, logger: Logger): Addon =
+            Addon(logger).apply { load(value) }
 
         private fun getString(evaluated: Value, name: String, keys: Set<String>): String? {
             return keys.find {
@@ -88,35 +119,29 @@ open class Addon() {
                 evaluated.getMember(it).asString()
             }
         }
-
-        private fun getFunction(evaluated: Value, name: String, keys: Set<String>): Value? =
-            getFunction(evaluated, listOf(name), keys)
-
-        private fun getFunction(evaluated: Value, names: Collection<String>, keys: Set<String>): Value? =
-            keys.find {
-                names.contains(it) && evaluated.getMember(it).canExecute()
-            }?.let {
-                evaluated.getMember(it)
-            }
     }
 
-    open fun onRequest(req: ScriptHttpRequest): ScriptHttpRequest =
-        onReq?.let { onRequest(it, req) } ?: req
+    fun onRequest(req: ScriptHttpRequest): ScriptHttpRequest =
+        if (!shouldHandle(req)) {
+            req
+        } else {
+            functions.onReq?.let { onRequest(it, req) } ?: req
+        }
 
-    open fun onResponse(res: ScriptHttpResponse): ScriptHttpResponse =
-        onRes?.let { onResponse(it, res) } ?: res
+    fun onResponse(res: ScriptHttpResponse): ScriptHttpResponse =
+        if (!shouldHandle(res)) {
+            res
+        } else {
+            functions.onRes?.let { onResponse(it, res) } ?: res
+        }
 
 
     private fun onRequest(cb: Value, req: ScriptHttpRequest): ScriptHttpRequest {
-        if (!shouldHandle(req)) {
-            return req
-        }
         return try {
-            val result = cb.execute(req)
             try {
-                result.`as`(ScriptHttpRequest::class.java) ?: req
+                cb.execute(req).`as`(ScriptHttpRequest::class.java) ?: req
             } catch (e: Exception) {
-                logger.error("Callback did not return an HttpRequestToBeSent", e)
+                logger.error("Callback did not return a ScriptHttpRequest", e)
                 req
             }
         } catch (e: Exception) {
@@ -126,15 +151,11 @@ open class Addon() {
     }
 
     private fun onResponse(cb: Value, res: ScriptHttpResponse): ScriptHttpResponse {
-        if (!shouldHandle(res)) {
-            return res
-        }
         return try {
-            val result = cb.execute(res)
             try {
-                result.`as`(ScriptHttpResponse::class.java) ?: res
+                cb.execute(res).`as`(ScriptHttpResponse::class.java) ?: res
             } catch (e: Exception) {
-                logger.error("Callback did not return an HttpResponseReceived", e)
+                logger.error("Callback did not return a ScriptHttpResponse", e)
                 res
             }
         } catch (e: Exception) {
@@ -148,55 +169,48 @@ open class Addon() {
     private fun shouldHandle(res: ScriptHttpResponse): Boolean = resFilter?.matches(res) ?: true
 }
 
-/** Script files are not parsed and loaded on init. Must call [reload] or instantiate with [Script.load] */
-class Script(
+
+class Script private constructor(
     val id: UUID,
     private val api: MontoyaApi,
     private val path: Path,
     private val language: Language,
     private var opts: Options,
-    private val ctxBuilder: ContextBuilder = newContextBuilder(language),
-) : Addon() {
+    private val ctxBuilder: ContextBuilder,
+    private val executor: ExecutorService,
+    private val threadFactory: ScriptThreadFactory,
+    private val logger: Logger,
+) {
 
     private lateinit var ctx: Context
+    private var base = Addon(logger)
     private val helpers = ScriptHelpers()
     private val addons = mutableListOf<Addon>()
 
-    // JavaScript context needs a lock to prevent multi thread access
-    private var lock: Lock? = if (language is Language.JavaScript) {
-        ReentrantLock()
-    } else {
-        null
-    }
-
-    override fun onRequest(req: ScriptHttpRequest): ScriptHttpRequest {
+    fun onRequest(req: ScriptHttpRequest): ScriptHttpRequest {
         if (!shouldHandle(req)) {
             return req
         }
-        return lock?.withLock {
-            handleRequest(req)
-        } ?: handleRequest(req)
+        return onExecutor { handleRequestOnExecutor(req) }
     }
 
-    private fun handleRequest(req: ScriptHttpRequest): ScriptHttpRequest {
-        var newReq = super.onRequest(req)
+    private fun handleRequestOnExecutor(req: ScriptHttpRequest): ScriptHttpRequest {
+        var newReq = base.onRequest(req)
         for (addon in addons) {
             newReq = addon.onRequest(newReq)
         }
         return newReq
     }
 
-    override fun onResponse(res: ScriptHttpResponse): ScriptHttpResponse {
+    fun onResponse(res: ScriptHttpResponse): ScriptHttpResponse {
         if (!shouldHandle(res)) {
             return res
         }
-        return lock?.withLock {
-            handleResponse(res)
-        } ?: handleResponse(res)
+        return onExecutor { handleResponseOnExecutor(res) }
     }
 
-    private fun handleResponse(res: ScriptHttpResponse): ScriptHttpResponse {
-        var newRes = super.onResponse(res)
+    private fun handleResponseOnExecutor(res: ScriptHttpResponse): ScriptHttpResponse {
+        var newRes = base.onResponse(res)
         for (addon in addons) {
             newRes = addon.onResponse(newRes)
         }
@@ -204,9 +218,33 @@ class Script(
     }
 
     /**
+     * Whether we're currently on the executor thread or not
+     */
+    private fun onExecutorThread(): Boolean =
+        threadFactory.threadId.isPresent && threadFactory.threadId.asLong == Thread.currentThread().threadId()
+
+    /**
+     * Run the given lambda on the executor. If this addon is owned, it is assumed
+     * that this function is only ever called from the executor thread
+     */
+    private inline fun <R> onExecutor(crossinline f: () -> R): R =
+        if (onExecutorThread()) {
+            f()
+        } else {
+            executor.submit(Callable {
+                f()
+            }).get()
+        }
+
+
+    /**
      * Reload the script
      */
     fun reload() {
+        onExecutor { reloadOnExecutor() }
+    }
+
+    fun reloadOnExecutor() {
         logger.info("Loading script $path")
 
         if (this::ctx.isInitialized) {
@@ -247,22 +285,25 @@ class Script(
         val src = Source.newBuilder(language.id, path.toFile()).build()
         val evaluated = ctx.eval(src)
 
-        load(evaluated)
+        base.load(evaluated)
         if (evaluated.hasMember("addons")) {
             loadAddons(evaluated.getMember("addons"))
         }
     }
 
-    override fun unload() {
+    fun unload() {
+        onExecutor { unloadOnExecutor() }
+    }
+
+    fun unloadOnExecutor() {
         logger.debug("Unloading script $path")
-        super.unload()
+        base.unload()
         addons.forEach { it.unload() }
         addons.clear()
 
-        // We may arrive here from a different thread than the one that is potentially executing
-        // something within the context. Per the "Thread-Safety" section of Context, we're supposed
-        // to use close(cancelIfExecuting=true).
-        ctx.close(true)
+        // The context is only ever touched on the Executor thread so we should be able
+        // to safely close it
+        ctx.close()
     }
 
     private fun loadAddons(value: Value) {
@@ -270,7 +311,7 @@ class Script(
         while (iter.hasIteratorNextElement()) {
             val elem = iter.iteratorNextElement
             try {
-                addons.add(fromValue(elem))
+                addons.add(Addon.fromValue(elem, logger))
             } catch (e: Exception) {
                 logger.error("failed to load addon", e)
             }
@@ -315,20 +356,6 @@ class Script(
 
 
     companion object {
-        /**
-         * Load the given [Path] as a script of the given language.
-         */
-        fun load(
-            id: UUID,
-            api: MontoyaApi,
-            path: Path,
-            language: Language,
-            opts: Options,
-            builder: ContextBuilder = newContextBuilder(language)
-        ): Script {
-            return Script(id, api, path, language, opts, builder).apply { reload() }
-        }
-
         private fun newContextBuilder(language: Language): ContextBuilder =
             when (language) {
                 Language.JavaScript -> JsContextBuilder()
@@ -341,11 +368,63 @@ class Script(
      * All user configurable options for the script. This is connected
      * to the UI.
      */
-    @Serializable()
+    @Serializable
     data class Options(
         @SerialName("a") val active: Boolean = false,
         @SerialName("i") val inScopeOnly: Boolean = false,
         @SerialName("p") val proxyOnly: Boolean = true,
     )
+
+    class Factory(private val api: MontoyaApi) {
+
+        fun open(
+            id: UUID,
+            path: Path,
+            language: Language,
+            opts: Options,
+            contextBuilder: ContextBuilder = newContextBuilder(language)
+        ): Script {
+
+            val logger = LogManager.getLogger("Script-$id")
+
+            val threadFactory = ScriptThreadFactory(id, logger)
+            val executor = Executors.newSingleThreadExecutor(threadFactory)
+            val s = Script(
+                id, api, path, language, opts, contextBuilder, executor, threadFactory, logger
+            )
+            return s
+        }
+
+        fun load(
+            id: UUID,
+            path: Path,
+            language: Language,
+            opts: Options,
+            contextBuilder: ContextBuilder = newContextBuilder(language)
+        ): Script {
+            val script = open(id, path, language, opts, contextBuilder)
+            script.reload()
+            return script
+        }
+    }
+}
+
+class ScriptThreadFactory(private val id: UUID, private val logger: Logger) : ThreadFactory {
+    private var count = 0
+    private val name: String
+        get() = "Script-${id}-${count}"
+
+    var threadId: OptionalLong = OptionalLong.empty()
+
+    override fun newThread(runnable: Runnable): Thread {
+        count += 1
+        val thread = Thread(runnable, name).apply {
+            uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, e ->
+                logger.error("Uncaught exception in Script thread!", e)
+            }
+        }
+        threadId = OptionalLong.of(thread.threadId())
+        return thread
+    }
 }
 

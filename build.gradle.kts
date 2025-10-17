@@ -16,7 +16,7 @@ plugins {
     kotlin("plugin.serialization") version "2.1.10"
 }
 
-val pluginVersion = "0.9.0"
+val pluginVersion = "0.10.0"
 
 group = "com.carvesystems.burpscript"
 version = pluginVersion

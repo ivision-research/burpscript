@@ -11,6 +11,7 @@ class ScriptTest : StringSpec() {
     private lateinit var hooks: Hooks
     private lateinit var pyBuilder: PythonContextBuilder
     private lateinit var jsBuilder: JsContextBuilder
+    private lateinit var scriptFactory: Script.Factory
 
     init {
         beforeSpec {
@@ -21,6 +22,8 @@ class ScriptTest : StringSpec() {
             jsBuilder = JsContextBuilder().apply {
                 withBindings("testHooks" to hooks)
             }
+
+            scriptFactory = Script.Factory(mockk())
         }
 
         afterTest {
@@ -60,8 +63,8 @@ class ScriptTest : StringSpec() {
                     """.trimIndent()
                 )
 
-                val script = Script.load(
-                    UUID.randomUUID(), mockk(), file, Language.Python, mockk()
+                val script = scriptFactory.load(
+                    UUID.randomUUID(), file, Language.Python, mockk()
                 )
                 script.unload()
             }
@@ -83,8 +86,8 @@ class ScriptTest : StringSpec() {
 
                 // Opts that allow the script to always run, avoiding logic that would need to be mocked
                 val opts = Script.Options(active = true, proxyOnly = false)
-                val script = Script.load(
-                    UUID.randomUUID(), mockk(), file, Language.Python, opts, pyBuilder
+                val script = scriptFactory.load(
+                    UUID.randomUUID(), file, Language.Python, opts, pyBuilder
                 )
 
                 script.onRequest(sentReq)
@@ -244,8 +247,8 @@ class ScriptTest : StringSpec() {
 
             // Opts that allow the script to always run, avoiding logic that would need to be mocked
             val opts = Script.Options(active = true, proxyOnly = false)
-            val script = Script.load(
-                UUID.randomUUID(), mockk(), file, lang, opts, builder
+            val script = scriptFactory.load(
+                UUID.randomUUID(), file, lang, opts, builder
             )
 
             script.onRequest(sentReq).shouldBe(sentReq)
@@ -275,8 +278,8 @@ class ScriptTest : StringSpec() {
 
             // Opts that allow the script to always run, avoiding logic that would need to be mocked
             val opts = Script.Options(active = true, proxyOnly = false)
-            val script = Script.load(
-                UUID.randomUUID(), mockk(), file, lang, opts, builder
+            val script = scriptFactory.load(
+                UUID.randomUUID(), file, lang, opts, builder
             )
 
             script.unload()
@@ -304,8 +307,8 @@ class ScriptTest : StringSpec() {
                 hooks.cleanup()
             } just Runs
 
-            val script = Script.load(
-                UUID.randomUUID(), mockk(), file, lang, mockk(), builder
+            val script = scriptFactory.load(
+                UUID.randomUUID(), file, lang, mockk(), builder
             )
 
             // Load

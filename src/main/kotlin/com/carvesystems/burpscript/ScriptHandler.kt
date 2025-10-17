@@ -18,12 +18,13 @@ import kotlin.concurrent.write
 
 
 class ScriptHandler(
-    private val api: MontoyaApi,
+    api: MontoyaApi,
     scriptEvents: Flow.Publisher<ScriptEvent>,
     watchEvents: Flow.Publisher<PathWatchEvent>,
     private val loadEvents: SubmissionPublisher<ScriptLoadEvent>,
 ) : HttpHandler, ProxyRequestHandler, ProxyResponseHandler {
 
+    private val scriptFactory = Script.Factory(api)
     private val logger = LogManager.getLogger(this)
     private val watchEventSubscriber = WatchEventSubscriber()
     private val scriptEventSubscriber = ScriptEventSubscriber()
@@ -42,6 +43,7 @@ class ScriptHandler(
         scriptEvents.subscribe(scriptEventSubscriber)
 
         SaveData.forEachScript {
+            logger.debug("Loading saved script ${it.id} - ${it.path}")
             loadScriptLocked(it.id, it.path, it.language, it.opts)
         }
 
@@ -202,22 +204,36 @@ class ScriptHandler(
     }
 
     private fun loadScriptLocked(id: UUID, path: Path, language: Language, opts: Script.Options) {
-        val script = Script(id, api, path, language, opts)
+
+        val script = try {
+            scriptFactory.open(id, path, language, opts)
+        } catch (e: java.lang.Exception) {
+            logger.error("Failed to open script $path - $language", e)
+            publishLoadFailed(id)
+            return
+        }
+
         scripts.add(script)
 
         try {
             script.reload()
-            publishLoaded(id)
-        } catch (e: java.lang.Exception) {
-            logger.error("Failed to load script ${path} - ${language}", e)
+        }catch (e: java.lang.Exception) {
+            logger.error("Failed to load script $path - $language", e)
             publishLoadFailed(id)
+            return
         } catch (e: java.lang.Error) {
             logger.error(
-                "Failed to load script ${path} - ${language}. This is probably not recoverable. Please try restarting Burp",
+                "Failed to load script $path - ${language}. This is probably not recoverable. Please try restarting Burp",
                 e
             )
             publishLoadFailed(id)
+            return
         }
+
+        publishLoaded(id)
+
+
+
     }
 
     private fun removeScriptLocked(match: (Script) -> Boolean) {
@@ -295,11 +311,5 @@ class ScriptHandler(
                 is PathWatchEvent.Removed -> onRemoved(item)
             }
         }
-    }
-
-    companion object {
-        val REQ_MOD_NOTE = Strings.get("request_modified")
-        val RES_MOD_NOTE = Strings.get("response_modified")
-        val BOTH_MODIFIED_NOTE = Strings.get("both_modified")
     }
 }
