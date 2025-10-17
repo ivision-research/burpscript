@@ -843,7 +843,6 @@ private class `status-code-in`(
         when (arg) {
             is FilterArg.Response -> {
                 val code = arg.res.statusCode().toInt()
-                println("code in $lower .. $upper ${code in lower..upper}")
                 return code in lower..upper
             }
 
