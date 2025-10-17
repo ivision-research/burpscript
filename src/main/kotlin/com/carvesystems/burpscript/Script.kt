@@ -138,8 +138,9 @@ private class Addon(
 
     private fun onRequest(cb: Value, req: ScriptHttpRequest): ScriptHttpRequest {
         return try {
+            val result = cb.execute(req)
             try {
-                cb.execute(req).`as`(ScriptHttpRequest::class.java) ?: req
+                result.`as`(ScriptHttpRequest::class.java) ?: req
             } catch (e: Exception) {
                 logger.error("Callback did not return a ScriptHttpRequest", e)
                 req
@@ -152,8 +153,9 @@ private class Addon(
 
     private fun onResponse(cb: Value, res: ScriptHttpResponse): ScriptHttpResponse {
         return try {
+            val result = cb.execute(res)
             try {
-                cb.execute(res).`as`(ScriptHttpResponse::class.java) ?: res
+                result.`as`(ScriptHttpResponse::class.java) ?: res
             } catch (e: Exception) {
                 logger.error("Callback did not return a ScriptHttpResponse", e)
                 res
