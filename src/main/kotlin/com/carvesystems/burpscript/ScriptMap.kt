@@ -88,12 +88,12 @@ class ScriptMap : HashMap<String, Any?> {
         }
 
     private fun finalKey(dottedKey: String): String =
-        dottedKey.split('.').last()
+        SimpleEscapeSplitter('.').split(dottedKey).last()
 
     @ScriptApi
     fun hasDotted(dottedKey: String): Boolean {
         var obj: Map<String, Any?> = this
-        val iter = dottedKey.split('.').iterator()
+        val iter = SimpleEscapeSplitter('.').split(dottedKey).iterator()
         while (iter.hasNext()) {
             val key = iter.next()
             if (!iter.hasNext()) {
@@ -109,16 +109,37 @@ class ScriptMap : HashMap<String, Any?> {
         return false
     }
 
+    /**
+     * Return the parent of a given dotted key, for example: "foo.bar.baz" on JSON
+     * of the form:
+     *
+     * {
+     *      "foo": {
+     *          "bar": {
+     *              "baz": 12
+     *          }
+     *      }
+     * }
+     *
+     * would return the object: obj["foo"]["bar"]
+     */
     private fun getParent(dottedKey: String): MutableMap<String, Any?> {
         var obj: MutableMap<String, Any?> = this
-        val idx = dottedKey.lastIndexOf('.')
-        if (idx == -1) {
+        val iter = SimpleEscapeSplitter('.').split(dottedKey).iterator()
+        // If there weren't any dots, return the object itself
+        if (!iter.hasNext()) {
             return obj
         }
-        val parentKey = dottedKey.substring(0, idx)
-        val iter = parentKey.split('.').iterator()
+
         while (iter.hasNext()) {
             val key = iter.next()
+            // If there is no next, this was the last key so we just return
+            // the object
+            if (!iter.hasNext()) {
+                return obj
+            }
+
+            // Otherwise try to get the inner object
             try {
                 @Suppress("UNCHECKED_CAST")
                 obj = obj[key] as MutableMap<String, Any?>
@@ -126,6 +147,7 @@ class ScriptMap : HashMap<String, Any?> {
                 throw IllegalArgumentException("Cannot set value at $dottedKey")
             }
         }
+        // This is unreachable
         return obj
     }
 }
@@ -133,3 +155,54 @@ class ScriptMap : HashMap<String, Any?> {
 fun scriptMapOf(vararg pairs: Pair<String, Any?>): ScriptMap =
     if (pairs.isNotEmpty()) pairs.toMap(ScriptMap()) else ScriptMap()
 
+
+/**
+ * Splits a string on a value that may be escaped.
+ *
+ * For example:
+ *
+ *  SimpleEscapeSplitter(',').split("foo,bar\\n\\,baz,bar")
+ *
+ * Would create a sequence returning:
+ *  - "foo"
+ *  - "bar\\n,baz"
+ *  - "bar"
+ */
+class SimpleEscapeSplitter(private val splitChar: Char) {
+    fun split(s: String): Sequence<String> {
+
+        val chars = s.toCharArray()
+        val count = chars.size
+        var idx = 0
+        val part = StringBuilder()
+        var escaped = false
+        return generateSequence {
+            if (idx >= count) {
+                return@generateSequence null
+            }
+            while (idx < count) {
+                val c = chars[idx]
+                idx += 1
+                if (escaped) {
+                    // Restore the escape
+                    if (c != splitChar) {
+                        part.append('\\')
+                    }
+                    part.append(c)
+                    escaped = false
+                } else if (c == '\\') {
+                    escaped = true
+                } else if (c == splitChar) {
+                    val string = part.toString()
+                    part.clear()
+                    return@generateSequence string
+                } else {
+                    part.append(c)
+                }
+            }
+            val string = part.toString()
+            part.clear()
+            return@generateSequence string
+        }
+    }
+}

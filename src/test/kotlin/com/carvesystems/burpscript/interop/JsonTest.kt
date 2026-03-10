@@ -143,6 +143,12 @@ class JsonTest : StringSpec() {
             nestedMaps.getDottedAs<ScriptMap>("key").getDottedAs<ScriptMap>("nested")
                 .shouldContainExactly(mapOf("key" to "value"))
         }
+
+        "ScriptMaps allow escaping dots" {
+            val nestedMap = fromJson("""{"key": {"nested.woah": {"neato": "value"}}}""") as ScriptMap
+            nestedMap.getDottedAs<String>("key.nested\\.woah.neato").shouldBe("value")
+
+        }
     }
 }
 
